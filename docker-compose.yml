@@ -50,6 +50,8 @@ services:
       - "traefik.http.routers.dateimanager.rule=PathPrefix(`/cpp-api/dateimanager`)"
       - "traefik.http.routers.dateimanager.entrypoints=websecure"
       - "traefik.http.routers.dateimanager.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dateimanager.middlewares=dateimanager-strip"
+      - "traefik.http.middlewares.dateimanager-strip.stripprefix.prefixes=/cpp-api/dateimanager"
       - "traefik.http.services.dateimanager.loadbalancer.server.port=3000"
     restart: unless-stopped
 
