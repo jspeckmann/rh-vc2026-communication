@@ -1,144 +1,24 @@
-<!DOCTYPE html>
-<html lang="de" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Collaboration System - Chat & Wiki</title>
-    <!-- Zentrales Stylesheet (Pfad später anpassen) -->
-    <link rel="stylesheet" href="base.css">
-    <!-- Eigene zusätzliche Styles -->
-    <link rel="stylesheet" href="custom-styles.css">
-    <!-- D3.js für Vernetzungswolke -->
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-</head>
-<body>
-    <div class="app-container flex h-screen relative">
-        <!-- Header mit Darkmode-Toggle (Absolute positioned) -->
-        <header class="header absolute right-6 top-6 z-1000">
-            <button class="btn-icon" id="dark-mode-toggle" aria-label="Darkmode umschalten">
-                <span class="sun">☀️</span>
-                <span class="moon">🌙</span>
-            </button>
-        </header>
-
-        <!-- Linke Navigation -->
-        <nav class="left-nav w-72 bg-bg-color border-r border-gray thin-stroke overflow-hidden flex flex-col">
-            <!-- Hauptmenü -->
-            <div class="nav-section p-4 border-b border-gray thin-stroke">
-                <h3 class="nav-title text-subtitle font-semibold text-gray mb-2">Hauptmenü</h3>
-                <button id="chat-btn" class="btn btn-nav active w-full">
-                    <span class="icon">💬</span>
-                    <span>Chat</span>
-                </button>
-                <button id="wiki-btn" class="btn btn-nav w-full">
-                    <span class="icon">📚</span>
-                    <span>Wiki</span>
-                </button>
-                <button id="network-btn" class="btn btn-nav w-full">
-                    <span class="icon">🌐</span>
-                    <span>Vernetzungswolke</span>
-                </button>
-                <button id="ai-feed-btn" class="btn btn-nav w-full">
-                    <span class="icon">🤖</span>
-                    <span>AI Feed</span>
-                </button>
-            </div>
-
-            <!-- Zuletzt geöffnet + Untergruppen -->
-            <div class="nav-section p-4 flex-1 overflow-y-auto">
-                <h3 class="nav-title text-subtitle font-semibold text-gray mb-2">Zuletzt geöffnet</h3>
-                <div class="recent-section" id="recent-items">
-                    <!-- Dynamisch gefüllt -->
-                </div>
-                <button class="btn btn-secondary w-full mt-2" id="add-group-btn">
-                    + Neue Untergruppe
-                </button>
-                <div id="group-container" class="mt-2">
-                    <!-- Untergruppen werden hier dynamisch eingefügt -->
-                </div>
-            </div>
-        </nav>
-
-        <!-- Hauptinhaltsbereich -->
-        <div class="main-content flex-1 flex flex-col overflow-hidden">
-            <!-- Breadcrumb -->
-            <div class="breadcrumb p-4 bg-bg-color border-b border-gray thin-stroke text-main">
-                <span>Home</span>
-                <span class="mx-2">></span>
-                <span id="breadcrumb-current" class="font-semibold">Chat</span>
-            </div>
-
-            <!-- Sub-Navigation -->
-            <div class="sub-nav p-3 bg-bg-color border-b border-gray thin-stroke">
-                <button id="sub-nav-all" class="btn btn-subnav active">Alle</button>
-                <button id="sub-nav-recent" class="btn btn-subnav">Aktuell</button>
-                <button id="sub-nav-favorites" class="btn btn-subnav">Favoriten</button>
-            </div>
-
-            <!-- Content Window -->
-            <div class="content-window flex-1 p-6 overflow-y-auto bg-bg-color">
-                <!-- Chat Section -->
-                <div id="chat-section" class="section active">
-                    <h2 class="title-m mb-4">Chat</h2>
-                    <div id="chat-messages" class="chat-messages flex-1 border border-gray thin-stroke rounded-8 p-4 mb-4 bg-content-bg overflow-y-auto"></div>
-                    <div class="input-group flex gap-2">
-                        <input type="text" id="chat-input" class="input-field flex-1" placeholder="Nachricht eingeben...">
-                        <button id="send-btn" class="btn btn-primary">Senden</button>
-                    </div>
-                </div>
-
-                <!-- Wiki Section -->
-                <div id="wiki-section" class="section">
-                    <h2 class="title-m mb-4">Wiki</h2>
-                    <div id="wiki-content" class="content-box border border-gray thin-stroke rounded-8 p-4 bg-content-bg"></div>
-                </div>
-
-                <!-- Vernetzungswolke Section -->
-                <div id="network-section" class="section">
-                    <div id="network-info" class="mb-4 p-4 bg-content-bg rounded-8">
-                        <h3 class="title-subtitle mb-2">Vernetzungswolke</h3>
-                        <p class="text-main mb-1">Visualisierung der Zusammenarbeit und Skills der Teammitglieder.</p>
-                        <p class="text-gray"><strong>Hinweis:</strong> Diese Funktion basiert auf Neo4j.</p>
-                    </div>
-                    <div id="network-container" class="network-container border border-gray thin-stroke rounded-8 bg-content-bg flex-1"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- AI Feed Panel -->
-    <div class="ai-feed-panel fixed bottom-6 right-6 w-80 max-w-[90%] bg-content-bg border border-gray thin-stroke rounded-8 shadow-lg hidden flex-col" id="ai-feed-panel">
-        <div class="ai-feed-header flex justify-between items-center p-3 border-b border-gray thin-stroke bg-accent text-white rounded-t-8">
-            <h3 class="title-subtitle m-0">🤖 AI Feed</h3>
-            <button class="ai-feed-close btn-icon text-white" id="ai-feed-close">×</button>
-        </div>
-        <div class="ai-feed-content flex-1 p-4 overflow-y-auto max-h-[400px]" id="ai-feed-content">
-            <!-- Dynamisch gefüllt -->
-        </div>
-    </div>
-
-    <!-- Modal für neue Gruppen -->
-    <div class="modal fixed inset-0 bg-black bg-opacity-50 z-1000 hidden items-center justify-center" id="add-group-modal">
-        <div class="modal-content bg-content-bg p-6 rounded-8 w-96 max-w-[90%]">
-            <div class="modal-header flex justify-between items-center mb-4">
-                <h3 class="title-m m-0">Neue Untergruppe erstellen</h3>
-                <button class="modal-close btn-icon" id="modal-close">×</button>
-            </div>
-            <div class="modal-body mb-4">
-                <input type="text" id="group-name-input" class="input-field w-full" placeholder="Name der Untergruppe">
-            </div>
-            <div class="modal-footer flex justify-end gap-2">
-                <button class="btn btn-secondary" id="modal-cancel">Abbrechen</button>
-                <button class="btn btn-success" id="modal-confirm">Erstellen</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tooltip für Vernetzungswolke -->
-    <div class="tooltip fixed p-2 bg-content-bg border border-gray thin-stroke rounded-4 pointer-events-none text-main text-sm shadow-md z-1001 hidden" id="tooltip"></div>
-
-    <!-- Skripte -->
-    <script src="script.js"></script>
-    <script src="network.js"></script>
-</body>
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CPP — Kommunikation</title>
+    <script>
+      (function() {
+        var theme = localStorage.getItem('theme');
+        if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600&display=swap" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
