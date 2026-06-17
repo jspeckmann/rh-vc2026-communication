@@ -1,6 +1,28 @@
 import { fallbackFeedItems, getMockNetworkData } from '../data/mocks.js';
 
-const BASE_URL = '/chat/api';
+const BASE_URL = '/api/chat';
+
+function formatTime(value) {
+  if (!value) return '';
+  return new Intl.DateTimeFormat('de-DE', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
+
+function mapAgentFeedItem(item) {
+  return {
+    id: item.id,
+    title: item.title,
+    description: `${item.itemType ?? 'Analyse'} · ${item.priority ?? 'normal'} · ${item.status ?? 'offen'}`,
+    time: item.createdAt ? formatTime(item.createdAt) : '',
+  };
+}
+
+async function getDefaultThreadId() {
+  const data = await fetchWithAuth('/threads?groupId=group-team-1');
+  return data.threads?.[0]?.id ?? 'thread-matrix-link';
+}
 
 export async function fetchWithAuth(endpoint, options = {}) {
   const token = localStorage.getItem('authToken');
@@ -30,7 +52,8 @@ export async function fetchWithAuth(endpoint, options = {}) {
 
 export async function fetchAIFeed() {
   try {
-    return await fetchWithAuth('/ai-feed');
+    const data = await fetchWithAuth('/agent/feed?groupId=group-team-1');
+    return (data.items ?? []).map(mapAgentFeedItem);
   } catch {
     return fallbackFeedItems;
   }
@@ -38,7 +61,15 @@ export async function fetchAIFeed() {
 
 export async function fetchWikiContent() {
   try {
-    return await fetchWithAuth('/wiki');
+    const data = await fetchWithAuth('/wiki?groupId=group-team-1');
+    const articles = data.articles ?? [];
+    if (articles.length === 0) return 'Wiki ist noch leer.';
+    return articles
+      .map((article) => {
+        const tags = article.tags?.length ? `\nTags: ${article.tags.join(', ')}` : '';
+        return `# ${article.title}${tags}\nAktualisiert: ${formatTime(article.updatedAt)}`;
+      })
+      .join('\n\n');
   } catch {
     return 'Wiki-Inhalte sind noch nicht angebunden.';
   }
@@ -46,7 +77,21 @@ export async function fetchWikiContent() {
 
 export async function fetchNetworkData() {
   try {
-    return await fetchWithAuth('/network');
+    const data = await fetchWithAuth('/knowledge/graph');
+    return {
+      nodes: (data.nodes ?? []).map((node) => ({
+        id: node.id,
+        title: node.title,
+        summary: node.summary,
+        group: node.type,
+      })),
+      links: (data.edges ?? []).map((edge) => ({
+        source: edge.fromNodeId,
+        target: edge.toNodeId,
+        relation: edge.relation,
+        confidence: edge.confidence,
+      })),
+    };
   } catch {
     return getMockNetworkData();
   }
@@ -54,9 +99,10 @@ export async function fetchNetworkData() {
 
 export async function sendMessage(text) {
   try {
-    return await fetchWithAuth('/messages', {
+    const threadId = await getDefaultThreadId();
+    return await fetchWithAuth(`/threads/${encodeURIComponent(threadId)}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ authorId: 'user-david', body: text }),
     });
   } catch (e) {
     throw new Error('Send failed', { cause: e });
@@ -65,7 +111,14 @@ export async function sendMessage(text) {
 
 export async function fetchMessages() {
   try {
-    return await fetchWithAuth('/messages');
+    const threadId = await getDefaultThreadId();
+    const data = await fetchWithAuth(`/threads/${encodeURIComponent(threadId)}/messages`);
+    return (data.messages ?? []).map((message) => ({
+      id: message.id,
+      text: message.body,
+      status: message.priorityLabel,
+      timestamp: message.createdAt,
+    }));
   } catch {
     return [];
   }

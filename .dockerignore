@@ -1,0 +1,9 @@
+node_modules
+target
+npm-debug.log*
+.env
+.git
+.DS_Store
+.codex
+docs
+infra

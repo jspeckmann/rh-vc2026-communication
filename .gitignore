@@ -1,0 +1,8 @@
+node_modules/
+target/
+frontend/dist/
+.env
+npm-debug.log*
+.DS_Store
+tmp/
+.codex/

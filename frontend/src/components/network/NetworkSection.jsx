@@ -60,7 +60,9 @@ export default function NetworkSection() {
         .attr('stroke', '#fff')
         .attr('stroke-width', 1.5)
         .on('mouseover', (event, d) => {
-          tooltip.style('display', 'block').text(d.id);
+          tooltip
+            .style('display', 'block')
+            .text(d.summary ? `${d.title || d.id}: ${d.summary}` : d.title || d.id);
         })
         .on('mousemove', (event) => {
           tooltip
@@ -94,7 +96,7 @@ export default function NetworkSection() {
         .selectAll('text')
         .data(data.nodes)
         .join('text')
-        .text((d) => d.id)
+        .text((d) => d.title || d.id)
         .attr('font-size', 10)
         .attr('dx', 12)
         .attr('dy', 4)
