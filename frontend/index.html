@@ -12,17 +12,15 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 <body>
-    <!-- Header mit Darkmode-Toggle -->
-    <header class="header pb-1 pr-3">
-        <div class="flex justify-end">
+    <div class="app-container flex h-screen relative">
+        <!-- Header mit Darkmode-Toggle (Absolute positioned) -->
+        <header class="header absolute right-6 top-6 z-1000">
             <button class="btn-icon" id="dark-mode-toggle" aria-label="Darkmode umschalten">
                 <span class="sun">☀️</span>
                 <span class="moon">🌙</span>
             </button>
-        </div>
-    </header>
+        </header>
 
-    <div class="app-container flex h-screen">
         <!-- Linke Navigation -->
         <nav class="left-nav w-72 bg-bg-color border-r border-gray thin-stroke overflow-hidden flex flex-col">
             <!-- Hauptmenü -->
@@ -82,7 +80,7 @@
                 <!-- Chat Section -->
                 <div id="chat-section" class="section active">
                     <h2 class="title-m mb-4">Chat</h2>
-                    <div id="chat-messages" class="chat-messages border border-gray thin-stroke rounded-8 p-4 mb-4 bg-content-bg h-full overflow-y-auto"></div>
+                    <div id="chat-messages" class="chat-messages flex-1 border border-gray thin-stroke rounded-8 p-4 mb-4 bg-content-bg overflow-y-auto"></div>
                     <div class="input-group flex gap-2">
                         <input type="text" id="chat-input" class="input-field flex-1" placeholder="Nachricht eingeben...">
                         <button id="send-btn" class="btn btn-primary">Senden</button>
@@ -140,10 +138,6 @@
     <div class="tooltip fixed p-2 bg-content-bg border border-gray thin-stroke rounded-4 pointer-events-none text-main text-sm shadow-md z-1001 hidden" id="tooltip"></div>
 
     <!-- Skripte -->
-    <script>
-        // Basis-URL für API-Aufrufe (anpassen, falls nötig)
-        const BASE_URL = '/chat/api';
-    </script>
     <script src="script.js"></script>
     <script src="network.js"></script>
 </body>
