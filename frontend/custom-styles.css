@@ -96,6 +96,24 @@
   text-align: center;
 }
 
+.btn-subnav {
+  background-color: transparent;
+  color: var(--gray);
+  border: var(--stroke-thin) solid transparent;
+  padding: var(--space-8) var(--space-16);
+}
+
+.btn-subnav:hover {
+  background-color: var(--light-purple);
+  color: white;
+}
+
+.btn-subnav.active {
+  background-color: var(--content-bg);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 /* ===== Recent Items & Groups ===== */
 .recent-section {
   flex: 1;
@@ -166,6 +184,8 @@
   cursor: pointer;
   transition: background-color 0.2s;
   border-radius: var(--radius-4);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .group-header:hover {
@@ -175,7 +195,10 @@
 
 .group-header .icon {
   font-style: normal;
-  transition: transform 0.2s;
+}
+
+.group-header .chevron {
+  transition: transform 0.2s ease;
 }
 
 .group-header.collapsed .chevron {
@@ -194,7 +217,7 @@
 
 /* ===== Chat ===== */
 .chat-messages {
-  min-height: 300px;
+  min-height: 0;
 }
 
 .input-group {
@@ -215,7 +238,7 @@
   stroke-width: 2px;
 }
 
-.node.text {
+.node text {
   font-size: 12px;
   font-family: var(--font-family);
   fill: var(--node-text-color);
