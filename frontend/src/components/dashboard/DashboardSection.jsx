@@ -181,6 +181,33 @@ function formatStatusValue(value) {
   return labels[value] ?? String(value ?? 'fehlt').replaceAll('_', ' ');
 }
 
+function formatPriority(value) {
+  const labels = {
+    high: 'Hohe Priorität',
+    normal: 'Normal',
+    low: 'Niedrig',
+  };
+  return labels[value] ?? String(value ?? 'Normal').replaceAll('_', ' ');
+}
+
+function formatAgentType(value) {
+  const labels = {
+    task_list: 'Aufgabenliste',
+    message_priority: 'Priorisierung',
+    summary: 'Zusammenfassung',
+  };
+  return labels[value] ?? String(value ?? 'Hinweis').replaceAll('_', ' ');
+}
+
+function formatAgentStatus(value) {
+  const labels = {
+    new: 'neu',
+    seen: 'gesehen',
+    done: 'erledigt',
+  };
+  return labels[value] ?? String(value ?? 'neu').replaceAll('_', ' ');
+}
+
 function HeaderLine({ title }) {
   return (
     <div className="mb-3 flex items-center justify-between border-b border-[var(--color-gray)]/15 pb-2">
@@ -203,7 +230,7 @@ function FeedList({ title, items }) {
             <strong>{item.title}</strong>
             <span>{item.summary}</span>
             <small className={item.priority === 'high' ? 'text-[var(--color-error)]' : 'text-[var(--color-gray)]'}>
-              {item.priority}
+              {formatPriority(item.priority)}
             </small>
           </>
         )}
@@ -224,7 +251,7 @@ function AgentList({ items }) {
         render={(item) => (
           <>
             <strong>{item.title}</strong>
-            <span>{item.itemType} / {item.status}</span>
+            <span>{formatAgentType(item.itemType)} · {formatAgentStatus(item.status)}</span>
           </>
         )}
       />

@@ -6,6 +6,28 @@ import {
   fetchAgentItem,
 } from '../../services/api.js';
 
+const ITEM_TYPE_LABELS = {
+  task_list: 'Aufgabenliste',
+  message_priority: 'Priorisierung',
+  summary: 'Zusammenfassung',
+};
+
+const PRIORITY_LABELS = {
+  high: 'Hohe Priorität',
+  normal: 'Normal',
+  low: 'Niedrig',
+};
+
+const STATUS_LABELS = {
+  new: 'neu',
+  seen: 'gesehen',
+  done: 'erledigt',
+};
+
+function labelFrom(map, value, fallback) {
+  return map[value] ?? String(value ?? fallback).replaceAll('_', ' ');
+}
+
 export default function AIFeedPanel({
   open,
   onClose,
@@ -172,7 +194,9 @@ export default function AIFeedPanel({
                   }`}
                 >
                   <strong className="block">{item.title}</strong>
-                  <span className="mt-1 block text-[var(--color-gray)]">{item.status}</span>
+                  <span className="mt-1 block text-[var(--color-gray)]">
+                    {labelFrom(STATUS_LABELS, item.status, 'neu')}
+                  </span>
                 </button>
               ))}
             </div>
@@ -185,7 +209,7 @@ export default function AIFeedPanel({
               <div className="mb-3 border-b border-[var(--color-gray)]/15 pb-3">
                 <h4 className="text-sm font-semibold">{selectedItem.title}</h4>
                 <p className="mt-1 text-xs text-[var(--color-gray)]">
-                  {selectedItem.itemType} / {selectedItem.priority} / {Math.round((selectedItem.confidence ?? 0) * 100)}%
+                  {labelFrom(ITEM_TYPE_LABELS, selectedItem.itemType, 'Hinweis')} · {labelFrom(PRIORITY_LABELS, selectedItem.priority, 'Normal')} · {Math.round((selectedItem.confidence ?? 0) * 100)}%
                 </p>
               </div>
               <AgentContent content={selectedItem.content} />

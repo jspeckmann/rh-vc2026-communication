@@ -15,22 +15,34 @@ pub fn mock_store() -> MockStore {
         UserRef::dummy("user-david", "David", "architect"),
         UserRef::dummy("user-samira", "Samira", "backend"),
         UserRef::dummy("user-leyla", "Leyla", "frontend"),
+        UserRef::dummy("user-jonas", "Jonas", "product"),
     ];
 
     let groups = vec![
         Group {
             id: "group-team-1".to_string(),
             name: "Team 1 Kommunikation".to_string(),
-            description: "Kommunikation, Wissen und Agent-Feed".to_string(),
-            member_ids: vec!["user-david".to_string(), "user-samira".to_string()],
+            description: "Absprachen, Entscheidungen und Team-Wissen fuer das Kommunikationsmodul"
+                .to_string(),
+            member_ids: vec![
+                "user-david".to_string(),
+                "user-samira".to_string(),
+                "user-leyla".to_string(),
+                "user-jonas".to_string(),
+            ],
             matrix_room_id: Some("!team1:matrix.local".to_string()),
             created_at: "2026-06-17T09:00:00Z".to_string(),
         },
         Group {
             id: "group-demo-support".to_string(),
             name: "Demo Support".to_string(),
-            description: "Abstimmung für Demo, Readback und offene Gates".to_string(),
-            member_ids: vec!["user-david".to_string(), "user-leyla".to_string()],
+            description: "Letzte Vorbereitung fuer Review, Demo-Flow und offene Server-Gates"
+                .to_string(),
+            member_ids: vec![
+                "user-david".to_string(),
+                "user-leyla".to_string(),
+                "user-jonas".to_string(),
+            ],
             matrix_room_id: Some("!demo-support:matrix.local".to_string()),
             created_at: "2026-06-17T09:05:00Z".to_string(),
         },
@@ -39,8 +51,11 @@ pub fn mock_store() -> MockStore {
     let group_members = vec![
         member("group-team-1", "user-david", "owner"),
         member("group-team-1", "user-samira", "member"),
+        member("group-team-1", "user-leyla", "member"),
+        member("group-team-1", "user-jonas", "member"),
         member("group-demo-support", "user-david", "owner"),
         member("group-demo-support", "user-leyla", "member"),
+        member("group-demo-support", "user-jonas", "member"),
     ];
 
     let matrix_room_links = vec![
@@ -79,6 +94,13 @@ pub fn mock_store() -> MockStore {
             link_status: "linked".to_string(),
             linked_at: "2026-06-17T09:13:00Z".to_string(),
         },
+        MatrixUserLink {
+            id: "mul-3".to_string(),
+            user_id: "user-leyla".to_string(),
+            matrix_user_id: "@leyla:matrix.local".to_string(),
+            link_status: "linked".to_string(),
+            linked_at: "2026-06-17T09:14:00Z".to_string(),
+        },
     ];
 
     let threads = vec![
@@ -106,6 +128,22 @@ pub fn mock_store() -> MockStore {
             "user-leyla",
             "2026-06-17T09:35:00Z",
         ),
+        thread(
+            "thread-ui-polish",
+            "group-team-1",
+            "Nutzeroberfläche lebendig machen",
+            "discussion",
+            "user-leyla",
+            "2026-06-17T09:42:00Z",
+        ),
+        thread(
+            "thread-admin-handoff",
+            "group-demo-support",
+            "Admin-Anbindung übergeben",
+            "question",
+            "user-jonas",
+            "2026-06-17T09:50:00Z",
+        ),
     ];
 
     let messages = vec![
@@ -122,6 +160,30 @@ pub fn mock_store() -> MockStore {
             created_at: "2026-06-17T09:25:00Z".to_string(),
         },
         Message {
+            id: "msg-1b".to_string(),
+            thread_id: "thread-architecture".to_string(),
+            matrix_room_id: Some("!team1:matrix.local".to_string()),
+            matrix_event_id: Some("$event1b".to_string()),
+            author_id: "user-samira".to_string(),
+            body: "Ich habe die Validierung fuer Gruppen, Wiki und Graph nachgezogen. Fehler kommen jetzt einheitlich als JSON zurueck."
+                .to_string(),
+            priority_label: "high".to_string(),
+            priority_score: 0.88,
+            created_at: "2026-06-17T09:28:00Z".to_string(),
+        },
+        Message {
+            id: "msg-1c".to_string(),
+            thread_id: "thread-architecture".to_string(),
+            matrix_room_id: Some("!team1:matrix.local".to_string()),
+            matrix_event_id: Some("$event1c".to_string()),
+            author_id: "user-david".to_string(),
+            body: "Gut. Bitte in der Uebergabe klar markieren: lokal gruen, Server/Docker/Auth noch offen."
+                .to_string(),
+            priority_label: "normal".to_string(),
+            priority_score: 0.63,
+            created_at: "2026-06-17T09:31:00Z".to_string(),
+        },
+        Message {
             id: "msg-2".to_string(),
             thread_id: "thread-matrix-link".to_string(),
             matrix_room_id: Some("!team1:matrix.local".to_string()),
@@ -131,6 +193,54 @@ pub fn mock_store() -> MockStore {
             priority_label: "normal".to_string(),
             priority_score: 0.66,
             created_at: "2026-06-17T09:36:00Z".to_string(),
+        },
+        Message {
+            id: "msg-3".to_string(),
+            thread_id: "thread-ui-polish".to_string(),
+            matrix_room_id: Some("!team1:matrix.local".to_string()),
+            matrix_event_id: Some("$event3".to_string()),
+            author_id: "user-leyla".to_string(),
+            body: "Ich mache die Oberflaeche so, dass sie wie ein bereits genutzter Arbeitsraum wirkt: echte Verlaeufe, klare Aufgaben, keine leeren Flaechen."
+                .to_string(),
+            priority_label: "high".to_string(),
+            priority_score: 0.86,
+            created_at: "2026-06-17T09:45:00Z".to_string(),
+        },
+        Message {
+            id: "msg-4".to_string(),
+            thread_id: "thread-ui-polish".to_string(),
+            matrix_room_id: Some("!team1:matrix.local".to_string()),
+            matrix_event_id: Some("$event4".to_string()),
+            author_id: "user-jonas".to_string(),
+            body: "Bitte auch Demo-Support sichtbar machen: was kann der Kollege pruefen, was ist noch kein Admin-Gate?"
+                .to_string(),
+            priority_label: "normal".to_string(),
+            priority_score: 0.58,
+            created_at: "2026-06-17T09:48:00Z".to_string(),
+        },
+        Message {
+            id: "msg-5".to_string(),
+            thread_id: "thread-demo-flow".to_string(),
+            matrix_room_id: Some("!demo-support:matrix.local".to_string()),
+            matrix_event_id: Some("$event5".to_string()),
+            author_id: "user-leyla".to_string(),
+            body: "Demo-Reihenfolge: Dashboard oeffnen, Gruppe waehlen, Chat-Verlauf zeigen, Wiki-Artikel bearbeiten, Assistenz-Feed pruefen."
+                .to_string(),
+            priority_label: "high".to_string(),
+            priority_score: 0.82,
+            created_at: "2026-06-17T09:55:00Z".to_string(),
+        },
+        Message {
+            id: "msg-6".to_string(),
+            thread_id: "thread-admin-handoff".to_string(),
+            matrix_room_id: Some("!demo-support:matrix.local".to_string()),
+            matrix_event_id: Some("$event6".to_string()),
+            author_id: "user-jonas".to_string(),
+            body: "Admin-Anbindung erst als fertig markieren, wenn Gateway, Auth und Server-Readback wirklich belegt sind."
+                .to_string(),
+            priority_label: "high".to_string(),
+            priority_score: 0.9,
+            created_at: "2026-06-17T10:02:00Z".to_string(),
         },
     ];
 
@@ -146,10 +256,58 @@ pub fn mock_store() -> MockStore {
         MatrixEventLink {
             id: "mel-2".to_string(),
             matrix_room_link_id: "mrl-1".to_string(),
+            matrix_event_id: "$event1b".to_string(),
+            source_type: "message_cache".to_string(),
+            source_id: "msg-1b".to_string(),
+            created_at: "2026-06-17T09:28:00Z".to_string(),
+        },
+        MatrixEventLink {
+            id: "mel-3".to_string(),
+            matrix_room_link_id: "mrl-1".to_string(),
+            matrix_event_id: "$event1c".to_string(),
+            source_type: "message_cache".to_string(),
+            source_id: "msg-1c".to_string(),
+            created_at: "2026-06-17T09:31:00Z".to_string(),
+        },
+        MatrixEventLink {
+            id: "mel-4".to_string(),
+            matrix_room_link_id: "mrl-1".to_string(),
             matrix_event_id: "$event2".to_string(),
             source_type: "message_cache".to_string(),
             source_id: "msg-2".to_string(),
             created_at: "2026-06-17T09:36:00Z".to_string(),
+        },
+        MatrixEventLink {
+            id: "mel-5".to_string(),
+            matrix_room_link_id: "mrl-1".to_string(),
+            matrix_event_id: "$event3".to_string(),
+            source_type: "message_cache".to_string(),
+            source_id: "msg-3".to_string(),
+            created_at: "2026-06-17T09:45:00Z".to_string(),
+        },
+        MatrixEventLink {
+            id: "mel-6".to_string(),
+            matrix_room_link_id: "mrl-1".to_string(),
+            matrix_event_id: "$event4".to_string(),
+            source_type: "message_cache".to_string(),
+            source_id: "msg-4".to_string(),
+            created_at: "2026-06-17T09:48:00Z".to_string(),
+        },
+        MatrixEventLink {
+            id: "mel-7".to_string(),
+            matrix_room_link_id: "mrl-2".to_string(),
+            matrix_event_id: "$event5".to_string(),
+            source_type: "message_cache".to_string(),
+            source_id: "msg-5".to_string(),
+            created_at: "2026-06-17T09:55:00Z".to_string(),
+        },
+        MatrixEventLink {
+            id: "mel-8".to_string(),
+            matrix_room_link_id: "mrl-2".to_string(),
+            matrix_event_id: "$event6".to_string(),
+            source_type: "message_cache".to_string(),
+            source_id: "msg-6".to_string(),
+            created_at: "2026-06-17T10:02:00Z".to_string(),
         },
     ];
 
@@ -158,7 +316,8 @@ pub fn mock_store() -> MockStore {
             id: "wiki-db-plan".to_string(),
             group_id: "group-team-1".to_string(),
             title: "DB-Plan Kommunikation".to_string(),
-            body: "PostgreSQL speichert Gruppen, Wiki, Feed, Graph und Agent-Feedback.".to_string(),
+            body: "PostgreSQL speichert Gruppen, Mitglieder, Wiki-Artikel, Feed-Eintraege, Knowledge-Graph und Assistenz-Feedback. Der lokale Mock bleibt nur Fallback fuer schnelle Entwicklung."
+                .to_string(),
             tags: vec!["db".to_string(), "chat".to_string(), "agent".to_string()],
             author_id: "user-david".to_string(),
             status: "published".to_string(),
@@ -169,12 +328,37 @@ pub fn mock_store() -> MockStore {
             id: "wiki-matrix-postgres".to_string(),
             group_id: "group-team-1".to_string(),
             title: "Chat und PostgreSQL".to_string(),
-            body: "Der Chat ist Austausch-Layer. PostgreSQL bleibt Modul-Wahrheit.".to_string(),
+            body: "Der Chat ist der Arbeitsverlauf. PostgreSQL bleibt die Modul-Wahrheit fuer Entscheidungen, Verknuepfungen und auswertbare Inhalte. Nachrichten koennen spaeter ueber Event-Links referenziert werden."
+                .to_string(),
             tags: vec!["chat".to_string(), "postgresql".to_string()],
             author_id: "user-samira".to_string(),
             status: "published".to_string(),
             created_at: "2026-06-17T10:05:00Z".to_string(),
             updated_at: "2026-06-17T10:05:00Z".to_string(),
+        },
+        WikiArticle {
+            id: "wiki-demo-handoff".to_string(),
+            group_id: "group-demo-support".to_string(),
+            title: "Demo- und Uebergabe-Checkliste".to_string(),
+            body: "Vor der Uebergabe pruefen: Backend-Health, Dashboard-Daten, Gruppenmitglieder, Chat-Verlauf, Wiki-Speichern, Assistenz-Feed und dokumentierte offene Server-Gates."
+                .to_string(),
+            tags: vec!["demo".to_string(), "handoff".to_string(), "checks".to_string()],
+            author_id: "user-leyla".to_string(),
+            status: "published".to_string(),
+            created_at: "2026-06-17T10:08:00Z".to_string(),
+            updated_at: "2026-06-17T10:08:00Z".to_string(),
+        },
+        WikiArticle {
+            id: "wiki-admin-open-gates".to_string(),
+            group_id: "group-demo-support".to_string(),
+            title: "Offene Admin-Gates".to_string(),
+            body: "Admin- und Modulverbund-Anbindung ist erst fertig, wenn Server-Docker-Build, Gateway-Netz, Auth/JWT und Postgres-Runtime gegen die echte Umgebung gelesen wurden."
+                .to_string(),
+            tags: vec!["admin".to_string(), "gateway".to_string(), "server".to_string()],
+            author_id: "user-jonas".to_string(),
+            status: "draft".to_string(),
+            created_at: "2026-06-17T10:10:00Z".to_string(),
+            updated_at: "2026-06-17T10:10:00Z".to_string(),
         },
     ];
 
@@ -208,6 +392,26 @@ pub fn mock_store() -> MockStore {
             "Lokale Checks sind Pflicht, Docker bleibt partial ohne Runtime.",
             "normal",
             "2026-06-17T10:14:00Z",
+        ),
+        feed(
+            "feed-4",
+            "group-team-1",
+            "thread",
+            "thread-ui-polish",
+            "UI wirkt genutzt",
+            "Chat, Wiki und Assistenz zeigen jetzt konkrete Arbeitsverlaeufe statt leerer Flaechen.",
+            "high",
+            "2026-06-17T10:15:00Z",
+        ),
+        feed(
+            "feed-5",
+            "group-demo-support",
+            "wiki_article",
+            "wiki-admin-open-gates",
+            "Admin-Gates markiert",
+            "Gateway, Auth und Server-Runtime bleiben offen, bis sie gegen die echte Umgebung belegt sind.",
+            "high",
+            "2026-06-17T10:16:00Z",
         ),
     ];
 
@@ -260,6 +464,22 @@ pub fn mock_store() -> MockStore {
             "agent_feed_item",
             "agent-1",
         ),
+        node(
+            "node-thread-ui-polish",
+            "thread",
+            "Nutzeroberfläche lebendig machen",
+            "Chat, Wiki und Assistenz zeigen konkrete Arbeitsverlaeufe",
+            "thread",
+            "thread-ui-polish",
+        ),
+        node(
+            "node-wiki-admin-open-gates",
+            "wiki_article",
+            "Offene Admin-Gates",
+            "Gateway, Auth und Server-Runtime sind noch offen",
+            "wiki_article",
+            "wiki-admin-open-gates",
+        ),
     ];
 
     let knowledge_edges = vec![
@@ -302,6 +522,30 @@ pub fn mock_store() -> MockStore {
             "related_to",
             "agent_feed_item",
             "agent-1",
+        ),
+        edge(
+            "edge-6",
+            "node-group-team-1",
+            "node-thread-ui-polish",
+            "discussed_in",
+            "thread",
+            "thread-ui-polish",
+        ),
+        edge(
+            "edge-7",
+            "node-thread-ui-polish",
+            "node-agent-1",
+            "related_to",
+            "agent_feed_item",
+            "agent-1",
+        ),
+        edge(
+            "edge-8",
+            "node-wiki-admin-open-gates",
+            "node-thread-architecture",
+            "references",
+            "wiki_article",
+            "wiki-admin-open-gates",
         ),
     ];
 
@@ -350,6 +594,39 @@ pub fn mock_store() -> MockStore {
             confidence: 0.72,
             status: "seen".to_string(),
             created_at: "2026-06-17T10:22:00Z".to_string(),
+        },
+        AgentFeedItem {
+            id: "agent-4".to_string(),
+            group_id: "group-team-1".to_string(),
+            item_type: "summary".to_string(),
+            title: "UI-Verlauf zusammengefasst".to_string(),
+            content: json!({"summary": "Die wichtigsten sichtbaren Arbeitsbereiche sind jetzt gefuellt: Chat-Verlauf, Wiki-Notizen, Feed, Graph und offene Uebergabe-Gates."}),
+            source_type: "thread".to_string(),
+            source_id: "thread-ui-polish".to_string(),
+            priority: "high".to_string(),
+            confidence: 0.81,
+            status: "new".to_string(),
+            created_at: "2026-06-17T10:23:00Z".to_string(),
+        },
+        AgentFeedItem {
+            id: "agent-5".to_string(),
+            group_id: "group-demo-support".to_string(),
+            item_type: "task_list".to_string(),
+            title: "Uebergabe vor Review".to_string(),
+            content: json!({
+                "tasks": [
+                    "PR #5 als Draft lassen",
+                    "Kollegen Frontend und Backend lokal pruefen lassen",
+                    "Server-DNS und cpp-edge separat klaeren",
+                    "Auth/Admin-Rechte erst nach Runtime-Readback freigeben"
+                ]
+            }),
+            source_type: "wiki_article".to_string(),
+            source_id: "wiki-admin-open-gates".to_string(),
+            priority: "high".to_string(),
+            confidence: 0.79,
+            status: "new".to_string(),
+            created_at: "2026-06-17T10:24:00Z".to_string(),
         },
     ];
 

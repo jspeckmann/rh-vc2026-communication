@@ -7,6 +7,36 @@ import {
   sendMessage as sendMsg,
 } from '../../services/api.js';
 
+const THREAD_TYPE_LABELS = {
+  discussion: 'Diskussion',
+  question: 'Frage',
+  decision: 'Entscheidung',
+};
+
+const THREAD_STATUS_LABELS = {
+  open: 'offen',
+  closed: 'geschlossen',
+  archived: 'archiviert',
+};
+
+const PRIORITY_LABELS = {
+  high: 'Hohe Priorität',
+  normal: 'Normal',
+  low: 'Niedrig',
+  sendet: 'Sendet',
+  'nicht gesendet': 'Nicht gesendet',
+};
+
+function formatThreadMeta(thread) {
+  const type = THREAD_TYPE_LABELS[thread.type] ?? thread.type;
+  const status = THREAD_STATUS_LABELS[thread.status] ?? thread.status;
+  return `${type} · ${status}`;
+}
+
+function formatPriority(value) {
+  return PRIORITY_LABELS[value] ?? String(value ?? 'Normal').replaceAll('_', ' ');
+}
+
 export default function ChatSection({
   filter,
   groups,
@@ -312,7 +342,7 @@ export default function ChatSection({
                     }`}
                   >
                     <strong className="block">{thread.title}</strong>
-                    <span className="block text-xs text-[var(--color-gray)]">{thread.type} / {thread.status}</span>
+                    <span className="block text-xs text-[var(--color-gray)]">{formatThreadMeta(thread)}</span>
                   </button>
                 ))
               )}
@@ -382,7 +412,7 @@ export default function ChatSection({
                     {usersById.get(message.authorId)?.displayName ?? message.authorId}
                   </strong>
                   <span>{formatTime(message.createdAt)}</span>
-                  <span>{message.priorityLabel}</span>
+                  <span>{formatPriority(message.priorityLabel)}</span>
                 </header>
                 <p>{message.body}</p>
                 {message.sendError ? (

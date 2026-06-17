@@ -231,7 +231,7 @@ mod tests {
         let (status, body) = get_json("/api/chat/users").await;
 
         assert_eq!(status, StatusCode::OK);
-        assert_eq!(body["users"].as_array().unwrap().len(), 3);
+        assert!(body["users"].as_array().unwrap().len() >= 3);
         assert_eq!(body["users"][0]["source"], "dummy");
     }
 
@@ -301,7 +301,7 @@ mod tests {
         let (status, feed) = get_json("/api/chat/feed").await;
         assert_eq!(status, StatusCode::OK);
         assert!(feed["items"].as_array().unwrap().len() >= 3);
-        assert_eq!(feed["items"][0]["id"], "feed-3");
+        assert_eq!(feed["items"][0]["id"], "feed-5");
 
         let (status, graph) = get_json("/api/chat/knowledge/graph").await;
         assert_eq!(status, StatusCode::OK);

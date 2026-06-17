@@ -14,6 +14,12 @@ const EMPTY_FORM = {
   status: 'published',
 };
 
+const STATUS_OPTIONS = [
+  { value: 'published', label: 'Veröffentlicht' },
+  { value: 'draft', label: 'Entwurf' },
+  { value: 'archived', label: 'Archiviert' },
+];
+
 function tagsFromInput(value) {
   return value
     .split(',')
@@ -296,9 +302,9 @@ export default function WikiSection({
               onChange={(event) => handleFormChange('status', event.target.value)}
               className="ui-input px-3 py-2 text-sm"
             >
-              <option value="published">published</option>
-              <option value="draft">draft</option>
-              <option value="archived">archived</option>
+              {STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
             </select>
           </div>
           <input
