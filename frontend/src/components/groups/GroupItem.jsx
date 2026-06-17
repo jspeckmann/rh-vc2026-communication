@@ -1,3 +1,5 @@
+import Icon from '../common/Icon.jsx';
+
 export default function GroupItem({ group, onToggle }) {
   return (
     <div className="group-item">
@@ -8,26 +10,22 @@ export default function GroupItem({ group, onToggle }) {
         aria-expanded={!group.collapsed}
       >
         <span className="flex items-center gap-2">
-          <span>&#128193;</span>
+          <Icon name="folder" size={16} className="shrink-0 text-[var(--color-gray)]" />
           <span>{group.name}</span>
         </span>
-        <span
-          className={`text-[10px] transition-transform duration-200 ${
+        <Icon
+          name="chevronDown"
+          size={14}
+          className={`shrink-0 text-[var(--color-gray)] transition-transform duration-200 ${
             group.collapsed ? '' : 'rotate-180'
           }`}
-        >
-          &#9660;
-        </span>
+        />
       </button>
       <div
         className={`overflow-hidden transition-all duration-200 ${
           group.collapsed ? 'max-h-0 opacity-0' : 'max-h-96 opacity-100'
         }`}
-      >
-        <div className="pl-8 text-xs text-[var(--color-gray)] py-1">
-          Noch keine Eintr&auml;ge.
-        </div>
-      </div>
+      />
     </div>
   );
 }

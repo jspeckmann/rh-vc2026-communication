@@ -1,8 +1,29 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import { fetchNetworkData } from '../../services/api.js';
+import {
+  createKnowledgeEdge,
+  createKnowledgeNode,
+  fetchNetworkData,
+} from '../../services/api.js';
 
-export default function NetworkSection() {
+const EMPTY_NODE_FORM = {
+  type: 'topic',
+  title: '',
+  summary: '',
+  sourceType: 'group',
+  sourceId: '',
+};
+
+const EMPTY_EDGE_FORM = {
+  fromNodeId: '',
+  toNodeId: '',
+  relation: 'related_to',
+  confidence: '0.8',
+  sourceType: 'manual',
+  sourceId: '',
+};
+
+export default function NetworkSection({ selectedGroupId, selectedGroupKnown }) {
   const containerRef = useRef(null);
   const svgRef = useRef(null);
   const simulationRef = useRef(null);
@@ -11,28 +32,81 @@ export default function NetworkSection() {
   const [graph, setGraph] = useState({ nodes: [], links: [] });
   const [filter, setFilter] = useState('all');
   const [selectedNode, setSelectedNode] = useState(null);
+  const [nodeForm, setNodeForm] = useState(EMPTY_NODE_FORM);
+  const [edgeForm, setEdgeForm] = useState(EMPTY_EDGE_FORM);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [savingNode, setSavingNode] = useState(false);
+  const [savingEdge, setSavingEdge] = useState(false);
+  const [formError, setFormError] = useState('');
+
+  const loadGraph = useCallback((preferredNodeId = '') => {
+    setLoading(true);
+    return fetchNetworkData()
+      .then((data) => {
+        setGraph(data);
+        if (preferredNodeId) {
+          setSelectedNode(data.nodes.find((node) => node.id === preferredNodeId) ?? null);
+        }
+        setLoadError(false);
+      })
+      .catch(() => {
+        setLoadError(true);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    fetchNetworkData()
-      .then((data) => {
-        if (!cancelled) {
-          setGraph(data);
-          setLoadError(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLoadError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    queueMicrotask(() => {
+      if (!cancelled) loadGraph();
+    });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadGraph]);
+
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setNodeForm((current) => ({
+        ...current,
+        sourceId: current.sourceId || (selectedGroupKnown ? selectedGroupId : ''),
+      }));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedGroupId, selectedGroupKnown]);
+
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setEdgeForm((current) => {
+        const nodeIds = new Set(graph.nodes.map((node) => node.id));
+        const fromNodeId = nodeIds.has(current.fromNodeId)
+          ? current.fromNodeId
+          : graph.nodes[0]?.id ?? '';
+        const fallbackTarget = graph.nodes.find((node) => node.id !== fromNodeId)?.id ?? '';
+        const toNodeId = nodeIds.has(current.toNodeId) && current.toNodeId !== fromNodeId
+          ? current.toNodeId
+          : fallbackTarget;
+        return {
+          ...current,
+          fromNodeId,
+          toNodeId,
+          sourceId: current.sourceId || (selectedGroupKnown ? selectedGroupId : ''),
+        };
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [graph.nodes, selectedGroupId, selectedGroupKnown]);
 
   const nodeTypes = useMemo(
     () => [...new Set(graph.nodes.map((node) => node.group).filter(Boolean))].sort(),
@@ -189,9 +263,64 @@ export default function NetworkSection() {
       .call(zoomRef.current.zoom.transform, d3.zoomIdentity);
   };
 
+  const handleNodeFormChange = (field, value) => {
+    setNodeForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleEdgeFormChange = (field, value) => {
+    setEdgeForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleCreateNode = async (event) => {
+    event.preventDefault();
+    const title = nodeForm.title.trim();
+    if (!title) return;
+    setSavingNode(true);
+    setFormError('');
+    try {
+      const node = await createKnowledgeNode({
+        type: nodeForm.type.trim() || 'topic',
+        title,
+        summary: nodeForm.summary.trim(),
+        sourceType: nodeForm.sourceType.trim() || 'manual',
+        sourceId: nodeForm.sourceId.trim() || (selectedGroupKnown ? selectedGroupId : 'manual'),
+      });
+      setNodeForm((current) => ({ ...EMPTY_NODE_FORM, sourceId: current.sourceId }));
+      setFilter('all');
+      await loadGraph(node.id);
+    } catch {
+      setFormError('Knoten konnte nicht erstellt werden.');
+    } finally {
+      setSavingNode(false);
+    }
+  };
+
+  const handleCreateEdge = async (event) => {
+    event.preventDefault();
+    const confidence = Number.parseFloat(edgeForm.confidence);
+    if (!edgeForm.fromNodeId || !edgeForm.toNodeId || edgeForm.fromNodeId === edgeForm.toNodeId) return;
+    setSavingEdge(true);
+    setFormError('');
+    try {
+      await createKnowledgeEdge({
+        fromNodeId: edgeForm.fromNodeId,
+        toNodeId: edgeForm.toNodeId,
+        relation: edgeForm.relation.trim() || 'related_to',
+        confidence: Number.isFinite(confidence) ? confidence : 0.8,
+        sourceType: edgeForm.sourceType.trim() || 'manual',
+        sourceId: edgeForm.sourceId.trim() || (selectedGroupKnown ? selectedGroupId : 'manual'),
+      });
+      await loadGraph(selectedNode?.id ?? edgeForm.fromNodeId);
+    } catch {
+      setFormError('Kante konnte nicht erstellt werden.');
+    } finally {
+      setSavingEdge(false);
+    }
+  };
+
   return (
     <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[1fr_320px]">
-      <section className="flex min-h-0 flex-col rounded border border-[var(--color-gray)]/20 bg-[var(--color-content)]">
+      <section className="ui-panel flex min-h-0 flex-col overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-gray)]/15 px-4 py-3">
           <div>
             <h2 className="text-sm font-semibold">Vernetzungswolke</h2>
@@ -204,7 +333,7 @@ export default function NetworkSection() {
               aria-label="Knowledge-Graph-Typ filtern"
               value={filter}
               onChange={(event) => setFilter(event.target.value)}
-              className="rounded border border-[var(--color-gray)]/25 bg-[var(--color-content)] px-2 py-1.5 text-sm"
+              className="ui-input px-2 py-1.5 text-sm"
             >
               <option value="all">Alle Typen</option>
               {nodeTypes.map((type) => (
@@ -216,7 +345,7 @@ export default function NetworkSection() {
             <button
               type="button"
               onClick={resetZoom}
-              className="rounded border border-[var(--color-gray)]/25 px-3 py-1.5 text-sm hover:border-[var(--color-accent)]"
+              className="ui-button px-3 py-1.5 text-sm hover:border-[var(--color-accent)]"
             >
               Reset
             </button>
@@ -235,8 +364,128 @@ export default function NetworkSection() {
         </div>
       </section>
 
-      <aside className="min-h-0 overflow-y-auto rounded border border-[var(--color-gray)]/20 bg-[var(--color-content)] p-4">
-        <h2 className="mb-3 text-sm font-semibold">Details</h2>
+      <aside className="ui-panel min-h-0 overflow-y-auto p-4">
+        <h2 className="mb-3 text-sm font-semibold">Graph bearbeiten</h2>
+        {formError ? <p className="mb-3 text-xs text-[var(--color-error)]">{formError}</p> : null}
+
+        <form className="space-y-2 border-b border-[var(--color-gray)]/15 pb-4" onSubmit={handleCreateNode}>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-gray)]">Knoten</h3>
+          <div className="grid grid-cols-[110px_1fr] gap-2">
+            <input
+              aria-label="Knoten-Typ"
+              value={nodeForm.type}
+              onChange={(event) => handleNodeFormChange('type', event.target.value)}
+              placeholder="Typ"
+              className="ui-input px-2 py-1.5 text-xs"
+            />
+            <input
+              aria-label="Knoten-Titel"
+              value={nodeForm.title}
+              onChange={(event) => handleNodeFormChange('title', event.target.value)}
+              placeholder="Titel"
+              className="ui-input px-2 py-1.5 text-xs"
+            />
+          </div>
+          <textarea
+            aria-label="Knoten-Zusammenfassung"
+            value={nodeForm.summary}
+            onChange={(event) => handleNodeFormChange('summary', event.target.value)}
+            placeholder="Zusammenfassung"
+            rows={3}
+            className="ui-input w-full px-2 py-1.5 text-xs"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              aria-label="Knoten-Quelle"
+              value={nodeForm.sourceType}
+              onChange={(event) => handleNodeFormChange('sourceType', event.target.value)}
+              placeholder="sourceType"
+              className="ui-input px-2 py-1.5 text-xs"
+            />
+            <input
+              aria-label="Knoten-Quell-ID"
+              value={nodeForm.sourceId}
+              onChange={(event) => handleNodeFormChange('sourceId', event.target.value)}
+              placeholder="sourceId"
+              className="ui-input px-2 py-1.5 text-xs"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={!nodeForm.title.trim() || savingNode}
+            className="ui-button ui-button-primary px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Knoten anlegen
+          </button>
+        </form>
+
+        <form className="mt-4 space-y-2 border-b border-[var(--color-gray)]/15 pb-4" onSubmit={handleCreateEdge}>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-gray)]">Kante</h3>
+          <select
+            aria-label="Startknoten"
+            value={edgeForm.fromNodeId}
+            onChange={(event) => handleEdgeFormChange('fromNodeId', event.target.value)}
+            className="ui-input w-full px-2 py-1.5 text-xs"
+          >
+            {graph.nodes.map((node) => (
+              <option key={node.id} value={node.id}>{node.title}</option>
+            ))}
+          </select>
+          <select
+            aria-label="Zielknoten"
+            value={edgeForm.toNodeId}
+            onChange={(event) => handleEdgeFormChange('toNodeId', event.target.value)}
+            className="ui-input w-full px-2 py-1.5 text-xs"
+          >
+            {graph.nodes.map((node) => (
+              <option key={node.id} value={node.id}>{node.title}</option>
+            ))}
+          </select>
+          <div className="grid grid-cols-[1fr_82px] gap-2">
+            <input
+              aria-label="Kantenrelation"
+              value={edgeForm.relation}
+              onChange={(event) => handleEdgeFormChange('relation', event.target.value)}
+              placeholder="relation"
+              className="ui-input px-2 py-1.5 text-xs"
+            />
+            <input
+              aria-label="Konfidenz"
+              type="number"
+              min="0"
+              max="1"
+              step="0.05"
+              value={edgeForm.confidence}
+              onChange={(event) => handleEdgeFormChange('confidence', event.target.value)}
+              className="ui-input px-2 py-1.5 text-xs"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              aria-label="Kanten-Quelle"
+              value={edgeForm.sourceType}
+              onChange={(event) => handleEdgeFormChange('sourceType', event.target.value)}
+              placeholder="sourceType"
+              className="ui-input px-2 py-1.5 text-xs"
+            />
+            <input
+              aria-label="Kanten-Quell-ID"
+              value={edgeForm.sourceId}
+              onChange={(event) => handleEdgeFormChange('sourceId', event.target.value)}
+              placeholder="sourceId"
+              className="ui-input px-2 py-1.5 text-xs"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={!edgeForm.fromNodeId || !edgeForm.toNodeId || edgeForm.fromNodeId === edgeForm.toNodeId || savingEdge}
+            className="ui-button ui-button-primary px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Kante anlegen
+          </button>
+        </form>
+
+        <h2 className="mb-3 mt-4 text-sm font-semibold">Details</h2>
         {visibleSelectedNode ? (
           <div className="space-y-4">
             <div>
@@ -283,7 +532,7 @@ function RelationList({ node, links, nodes }) {
           const targetId = typeof link.target === 'object' ? link.target.id : link.target;
           const otherId = sourceId === node.id ? targetId : sourceId;
           return (
-            <article key={link.id ?? `${sourceId}-${targetId}`} className="rounded border border-[var(--color-gray)]/15 px-3 py-2 text-xs">
+            <article key={link.id ?? `${sourceId}-${targetId}`} className="ui-card-row px-3 py-2 text-xs">
               <strong className="block">{nodesById.get(otherId)?.title ?? otherId}</strong>
               <span className="text-[var(--color-gray)]">{link.relation}</span>
             </article>

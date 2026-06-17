@@ -17,18 +17,18 @@ export default function Modal({ open, onClose, title, children }) {
 
   return (
     <div
-      className={`fixed inset-0 z-1000 flex items-center justify-center transition-opacity duration-200 ${open ? 'visible opacity-100' : 'invisible opacity-0'}`}
+      className={`fixed inset-0 z-[1000] flex items-center justify-center transition-opacity duration-200 ${open ? 'visible opacity-100' : 'invisible opacity-0'}`}
       onClick={onClose}
       role="presentation"
     >
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0 bg-black/35 backdrop-blur-sm" />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        className="relative z-10 w-full max-w-md rounded-lg bg-[var(--color-content)] p-6 shadow-lg outline-none"
+        className="ui-modal-card relative z-10 w-full max-w-md p-6 outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">

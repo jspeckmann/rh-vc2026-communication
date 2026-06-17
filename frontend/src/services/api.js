@@ -87,12 +87,37 @@ export async function fetchGroupDetails(groupId) {
   return fetchWithAuth(`/groups/${encodeURIComponent(groupId)}`);
 }
 
+export function addGroupMember(groupId, payload) {
+  return fetchWithAuth(`/groups/${encodeURIComponent(groupId)}/members`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function fetchMatrixRooms(groupId) {
   const data = await fetchWithAuth(`/matrix/rooms${query({ groupId })}`);
   return data.rooms ?? [];
 }
 
-export async function fetchThreads(groupId = DEFAULT_GROUP_ID) {
+export function linkMatrixUser(payload) {
+  return fetchWithAuth('/matrix/users/link', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchMatrixUser(userId) {
+  return fetchWithAuth(`/matrix/users/${encodeURIComponent(userId)}`);
+}
+
+export function linkMatrixRoom(payload) {
+  return fetchWithAuth('/matrix/rooms/link', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchThreads(groupId) {
   const data = await fetchWithAuth(`/threads${query({ groupId })}`);
   return data.threads ?? [];
 }
@@ -110,14 +135,14 @@ export async function fetchMessages(threadId) {
   return data.messages ?? [];
 }
 
-export function sendMessage(threadId, text, authorId = DEFAULT_USER_ID) {
+export function sendMessage(threadId, text, authorId) {
   return fetchWithAuth(`/threads/${encodeURIComponent(threadId)}/messages`, {
     method: 'POST',
     body: JSON.stringify({ authorId, body: text }),
   });
 }
 
-export async function fetchWikiArticles(groupId = DEFAULT_GROUP_ID) {
+export async function fetchWikiArticles(groupId) {
   const data = await fetchWithAuth(`/wiki${query({ groupId })}`);
   return data.articles ?? [];
 }
@@ -126,7 +151,28 @@ export function fetchWikiArticle(articleId) {
   return fetchWithAuth(`/wiki/${encodeURIComponent(articleId)}`);
 }
 
-export async function fetchAIFeed(groupId = DEFAULT_GROUP_ID) {
+export function createWikiArticle(payload) {
+  return fetchWithAuth('/wiki', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateWikiArticle(articleId, payload) {
+  return fetchWithAuth(`/wiki/${encodeURIComponent(articleId)}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function rebuildFeed(payload) {
+  return fetchWithAuth('/feed/rebuild', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchAIFeed(groupId) {
   const data = await fetchWithAuth(`/agent/feed${query({ groupId })}`);
   return (data.items ?? []).map(mapAgentFeedItem);
 }
@@ -149,26 +195,58 @@ export function createAgentFeedback(itemId, payload) {
   });
 }
 
-export async function fetchNetworkData() {
-  const data = await fetchWithAuth('/knowledge/graph');
+function mapKnowledgeNode(node) {
   return {
-    nodes: (data.nodes ?? []).map((node) => ({
-      id: node.id,
-      type: node.type,
-      title: node.title,
-      summary: node.summary,
-      sourceType: node.sourceType,
-      sourceId: node.sourceId,
-      group: node.type,
-    })),
-    links: (data.edges ?? []).map((edge) => ({
-      id: edge.id,
-      source: edge.fromNodeId,
-      target: edge.toNodeId,
-      relation: edge.relation,
-      confidence: edge.confidence,
-      sourceType: edge.sourceType,
-      sourceId: edge.sourceId,
-    })),
+    id: node.id,
+    type: node.type,
+    title: node.title,
+    summary: node.summary,
+    sourceType: node.sourceType,
+    sourceId: node.sourceId,
+    group: node.type,
+  };
+}
+
+function mapKnowledgeEdge(edge) {
+  return {
+    id: edge.id,
+    source: edge.fromNodeId,
+    target: edge.toNodeId,
+    relation: edge.relation,
+    confidence: edge.confidence,
+    sourceType: edge.sourceType,
+    sourceId: edge.sourceId,
+  };
+}
+
+export async function fetchKnowledgeNodes() {
+  const data = await fetchWithAuth('/knowledge/nodes');
+  return data.nodes ?? [];
+}
+
+export function createKnowledgeNode(payload) {
+  return fetchWithAuth('/knowledge/nodes', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchKnowledgeEdges() {
+  const data = await fetchWithAuth('/knowledge/edges');
+  return data.edges ?? [];
+}
+
+export function createKnowledgeEdge(payload) {
+  return fetchWithAuth('/knowledge/edges', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchNetworkData() {
+  const [nodes, edges] = await Promise.all([fetchKnowledgeNodes(), fetchKnowledgeEdges()]);
+  return {
+    nodes: nodes.map(mapKnowledgeNode),
+    links: edges.map(mapKnowledgeEdge),
   };
 }

@@ -49,6 +49,18 @@ export default function DashboardSection({ onNavigate }) {
 
   return (
     <div className="flex h-full flex-col gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="mt-1 text-sm text-[var(--color-gray)]">Status, Gruppen, Feed und Wissensgraph auf einen Blick.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="ui-chip"><span className="ui-status-dot" /> Matrix verbunden</span>
+          <span className="ui-chip">LLM Mock aktiv</span>
+          <span className="ui-chip">User-Dummy sichtbar</span>
+        </div>
+      </div>
+
       {loading ? (
         <p className="text-sm text-[var(--color-gray)]">Lade Dashboard...</p>
       ) : loadError ? (
@@ -61,7 +73,7 @@ export default function DashboardSection({ onNavigate }) {
             key={metric.key}
             type="button"
             onClick={() => onNavigate(metric.route)}
-            className="rounded border border-[var(--color-gray)]/20 bg-[var(--color-content)] p-4 text-left shadow-sm transition-colors duration-150 hover:border-[var(--color-accent)]"
+            className="ui-panel p-4 text-left transition-colors duration-150 hover:border-[var(--color-accent)]"
           >
             <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-gray)]">
               {metric.label}
@@ -75,11 +87,11 @@ export default function DashboardSection({ onNavigate }) {
       </div>
 
       <div className="grid flex-1 min-h-0 gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <section className="min-h-0 rounded border border-[var(--color-gray)]/20 bg-[var(--color-content)] p-4">
+        <section className="ui-panel min-h-0 p-4">
           <HeaderLine title="Status" />
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
             {Object.entries(dashboard.status ?? {}).map(([key, value]) => (
-              <div key={key} className="rounded border border-[var(--color-gray)]/15 px-3 py-2">
+              <div key={key} className="ui-card-row px-3 py-2">
                 <span className="block text-xs uppercase tracking-wider text-[var(--color-gray)]">
                   {labelStatus(key)}
                 </span>
@@ -94,7 +106,7 @@ export default function DashboardSection({ onNavigate }) {
           </div>
         </section>
 
-        <section className="min-h-0 rounded border border-[var(--color-gray)]/20 bg-[var(--color-content)] p-4">
+        <section className="ui-panel min-h-0 p-4">
           <HeaderLine title="Gruppen und Wiki" />
           <div className="space-y-4">
             <CompactList
@@ -183,7 +195,7 @@ function CompactList({ items, empty, render }) {
   return (
     <div className="space-y-2">
       {items.slice(0, 5).map((item) => (
-        <article key={item.id} className="rounded border border-[var(--color-gray)]/15 px-3 py-2 text-sm">
+        <article key={item.id} className="ui-card-row px-3 py-2 text-sm">
           <div className="flex flex-col gap-1">{render(item)}</div>
         </article>
       ))}
