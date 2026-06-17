@@ -69,8 +69,8 @@ Nach dem Deploy in `modules.json` (Orchestrator-Repo) folgenden Eintrag ergänze
   "name": "Dateimanagement",
   "team": 2,
   "route": "/files",
-  "healthCheck": "http://team2-dateimanagement:8002/health",
-  "docsUrl": "http://team2-dateimanagement:8002/openapi.json"
+  "healthCheck": "http://team2-backend:8002/health",
+  "docsUrl": "http://team2-backend:8002/openapi.json"
 }
 ```
 

@@ -5,7 +5,9 @@
 networks:
   cpp-edge:
     external: true
+  internal:
 
+services:
   files-db:
     image: postgres:16-alpine
     container_name: files-db
@@ -15,6 +17,8 @@ networks:
       POSTGRES_DB: ${FILES_PG_DB:-files}
     volumes:
       - files-db-data:/var/lib/postgresql/data
+    networks:
+      - internal
     restart: unless-stopped
 
   team2-backend:
@@ -35,6 +39,8 @@ networks:
       AUTH_ALLOW_DEV_HEADER: "false"
     volumes:
       - files-storage:/data/files
+    networks:
+      - internal
     depends_on:
       - files-db
     restart: unless-stopped
@@ -46,6 +52,9 @@ networks:
     container_name: team2-frontend
     volumes:
       - ./shared-styles:/shared-styles:ro
+    networks:
+      - cpp-edge
+      - internal
     depends_on:
       - team2-backend
     labels:

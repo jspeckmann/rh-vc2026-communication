@@ -11,16 +11,16 @@ app.use(express.json());
 // Health-Check (Team-Konvention).
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
-// REST-API unter /api/files (hinter Traefik oder Frontend-Proxy).
-app.use('/api/files', filesRouter);
-app.get('/api/files/health', (_req, res) => res.json({ status: 'ok' }));
-app.get('/api/files/openapi.json', (_req, res) => res.json(openapiSpec));
+app.get('/openapi.json', (_req, res) => res.json(openapiSpec));
+
+// REST-API unter /files (hinter Traefik oder Frontend-Proxy).
+app.use('/files', filesRouter);
 
 async function start(): Promise<void> {
   await migrate();
   await ensureStorageDir();
   app.listen(config.port, () => {
-    console.log(`[server] Dateimanagement-API läuft auf :${config.port} unter /api/files`);
+    console.log(`[server] Dateimanagement-API läuft auf :${config.port} unter /files`);
   });
 }
 

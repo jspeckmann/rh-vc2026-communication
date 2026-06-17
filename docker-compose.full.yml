@@ -1,5 +1,5 @@
 # Stack: Backend + Frontend + DB.
-# Das Frontend ist der Einstiegspunkt, proxied /api/files ans Backend.
+# Das Frontend ist der Einstiegspunkt, proxied /files ans Backend.
 
 networks:
   cpp-edge:
@@ -73,9 +73,11 @@ services:
     restart: unless-stopped
     command: http team2-frontend:80 --log=stdout
     environment:
-      - NGROK_AUTHTOKEN=3CApTLLqQTo7EimId47eRfQvN43_4oEjVcpesgPgH8TSDFT7J
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN:?set NGROK_AUTHTOKEN}
     ports:
       - "8501:4040"
+    networks:
+      - cpp-edge
 volumes:
   files-db-data:
   files-storage:

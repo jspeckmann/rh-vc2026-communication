@@ -27,7 +27,7 @@ services:
       dockerfile: Dockerfile
     container_name: dateimanager-backend
     environment:
-      PORT: 3000
+      PORT: 8002
       PGHOST: files-db
       PGUSER: ${PGUSER:-files}
       PGPASSWORD: ${PGPASSWORD:-files}
@@ -40,6 +40,8 @@ services:
       AUTH_ALLOW_DEV_HEADER: ${AUTH_ALLOW_DEV_HEADER:-true}
     volumes:
       - files-storage:/data/files
+    ports:
+      - "8002:8002"
     networks:
       - internal
       - cpp-edge
@@ -47,12 +49,10 @@ services:
       - files-db
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.dateimanager.rule=PathPrefix(`/cpp-api/dateimanager`)"
+      - "traefik.http.routers.dateimanager.rule=PathPrefix(`/files`) || Path(`/health`) || Path(`/openapi.json`)"
       - "traefik.http.routers.dateimanager.entrypoints=websecure"
       - "traefik.http.routers.dateimanager.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.dateimanager.middlewares=dateimanager-strip"
-      - "traefik.http.middlewares.dateimanager-strip.stripprefix.prefixes=/cpp-api/dateimanager"
-      - "traefik.http.services.dateimanager.loadbalancer.server.port=3000"
+      - "traefik.http.services.dateimanager.loadbalancer.server.port=8002"
     restart: unless-stopped
 
 volumes:

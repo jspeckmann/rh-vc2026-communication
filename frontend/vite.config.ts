@@ -1,15 +1,15 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Frontend wird direkt ausgeliefert, API unter /api/files.
+// Frontend wird direkt ausgeliefert, API unter /files.
 export default defineConfig({
   plugins: [react()],
   base: '/',
   build: { outDir: 'dist' },
   server: {
     proxy: {
-      '/api/files': {
-        target: 'http://localhost:3000',
+      '/files': {
+        target: 'http://localhost:8002',
         changeOrigin: true,
       },
     },

@@ -1,10 +1,23 @@
-// Minimale OpenAPI-Spec gemäß Team-Konvention (GET /openapi.json).
+// OpenAPI-Spec gemäß Team-Konvention (GET /openapi.json).
 export const openapiSpec = {
   openapi: '3.0.3',
   info: { title: 'CPP Dateimanagement (Team 2)', version: '1.0.0' },
-  servers: [{ url: '/api/files' }],
+  servers: [{ url: '/files' }],
   paths: {
-    '/health': { get: { summary: 'Health-Check', responses: { '200': { description: 'ok' } } } },
+    '/health': {
+      servers: [{ url: '/' }],
+      get: { summary: 'Health-Check', responses: { '200': { description: 'ok' } } },
+    },
+    '/openapi.json': {
+      servers: [{ url: '/' }],
+      get: { summary: 'OpenAPI-Spec', responses: { '200': { description: 'ok' } } },
+    },
+    '/projects': {
+      get: {
+        summary: 'Verfügbare Projekte auflisten',
+        responses: { '200': { description: 'Projektliste' } },
+      },
+    },
     '/projects/{projectId}/files': {
       get: {
         summary: 'Dateien des Projekts auflisten',
@@ -41,6 +54,25 @@ export const openapiSpec = {
         summary: 'Datei herunterladen (version oder latest)',
         security: [{ bearerAuth: [] }],
         responses: { '200': { description: 'Dateiinhalt' }, '404': { description: 'nicht gefunden' } },
+      },
+    },
+    '/projects/{projectId}/files/{fileId}/content': {
+      get: {
+        summary: 'Dateiinhalt abrufen',
+        security: [{ bearerAuth: [] }],
+        responses: { '200': { description: 'Dateiinhalt als JSON' }, '404': { description: 'nicht gefunden' } },
+      },
+      put: {
+        summary: 'Textinhalt speichern und neue Version erzeugen',
+        security: [{ bearerAuth: [] }],
+        responses: { '200': { description: 'Version angelegt' }, '400': { description: 'ungueltiger Inhalt' } },
+      },
+    },
+    '/projects/{projectId}/files/{fileId}': {
+      delete: {
+        summary: 'Datei inklusive aller Versionen loeschen',
+        security: [{ bearerAuth: [] }],
+        responses: { '200': { description: 'geloescht' }, '404': { description: 'nicht gefunden' } },
       },
     },
   },

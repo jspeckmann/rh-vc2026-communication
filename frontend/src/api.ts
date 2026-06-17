@@ -1,7 +1,7 @@
-// Schmaler API-Client gegen das eigene Backend unter /api/files.
+// Schmaler API-Client gegen das eigene Backend unter /files.
 // Token wird aus dem localStorage gelesen (vom CPP-Login gesetzt) — austauschbar.
 
-const BASE = '/api/files';
+const BASE = '/files';
 
 function authHeaders(): HeadersInit {
   const token = localStorage.getItem('cpp_token');
