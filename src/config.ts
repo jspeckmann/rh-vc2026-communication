@@ -9,7 +9,7 @@ function req(name: string, fallback?: string): string {
 }
 
 export const config = {
-  port: parseInt(process.env.PORT ?? '8002', 10),
+  port: parseInt(process.env.PORT ?? '3000', 10),
 
   db: {
     host: req('PGHOST', 'files-db'),
