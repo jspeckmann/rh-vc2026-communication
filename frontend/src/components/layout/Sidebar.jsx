@@ -7,6 +7,7 @@ export default function Sidebar({
   currentSection,
   groups,
   setGroups,
+  groupsLoadError,
   recentItems,
   setRecentItems,
 }) {
@@ -23,12 +24,14 @@ export default function Sidebar({
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-gray)]">
           Hauptmen&uuml;
         </h3>
-        <NavButton id="chat-btn" icon="&#128172;" label="Chat" active={currentSection === 'chat'} onClick={() => onNavigate('chat')} />
-        <NavButton id="wiki-btn" icon="&#128218;" label="Wiki" active={currentSection === 'wiki'} onClick={() => onNavigate('wiki')} />
-        <NavButton id="network-btn" icon="&#127760;" label="Vernetzungswolke" active={currentSection === 'network'} onClick={() => onNavigate('network')} />
+        <NavButton id="dashboard-btn" icon={'\u{1F4CA}'} label="Dashboard" active={currentSection === 'dashboard'} onClick={() => onNavigate('dashboard')} />
+        <NavButton id="groups-btn" icon={'\u{1F465}'} label="Gruppen" active={currentSection === 'groups'} onClick={() => onNavigate('groups')} />
+        <NavButton id="chat-btn" icon={'\u{1F4AC}'} label="Chat" active={currentSection === 'chat'} onClick={() => onNavigate('chat')} />
+        <NavButton id="wiki-btn" icon={'\u{1F4DA}'} label="Wiki" active={currentSection === 'wiki'} onClick={() => onNavigate('wiki')} />
+        <NavButton id="network-btn" icon={'\u{1F310}'} label="Vernetzungswolke" active={currentSection === 'network'} onClick={() => onNavigate('network')} />
         <NavButton
           id="ai-feed-btn"
-          icon="&#129302;"
+          icon={'\u{1F916}'}
           label="AI Feed"
           onClick={onToggleAIFeed}
         />
@@ -50,6 +53,12 @@ export default function Sidebar({
         </button>
 
         <div className="flex flex-col gap-1">
+          {groupsLoadError ? (
+            <p className="px-2 py-1.5 text-xs text-[var(--color-error)]">Gruppen-Backend nicht erreichbar.</p>
+          ) : null}
+          {!groupsLoadError && groups.length === 0 ? (
+            <p className="px-2 py-1.5 text-xs text-[var(--color-gray)]">Keine Gruppen.</p>
+          ) : null}
           {groups.map((group) => (
             <GroupItem
               key={group.id}
@@ -69,6 +78,7 @@ function NavButton({ id, icon, label, active, onClick }) {
       type="button"
       id={id}
       onClick={onClick}
+      aria-current={active ? 'page' : undefined}
       className={`flex w-full cursor-pointer items-center gap-3 rounded border-none bg-transparent px-4 py-3 text-left text-sm transition-colors duration-150 ${
         active ? 'bg-[var(--color-accent)]/15 font-semibold' : 'hover:bg-[var(--color-accent)]/10'
       }`}
@@ -100,16 +110,20 @@ function RecentItems({ items, onRemove, onNavigate }) {
       {items.map((item) => (
         <div
           key={item.id}
-          className="flex cursor-pointer items-center justify-between rounded px-2 py-1.5 text-xs transition-colors duration-150 hover:bg-[var(--color-accent)]/10"
-          onClick={() => handleItemClick(item)}
+          className="flex items-center justify-between rounded text-xs transition-colors duration-150 hover:bg-[var(--color-accent)]/10"
         >
-          <span className="flex items-center gap-2">
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 border-none bg-transparent px-2 py-1.5 text-left text-xs text-[var(--color-fg)]"
+            onClick={() => handleItemClick(item)}
+          >
             <span>{item.icon}</span>
-            <span>{item.label}</span>
-          </span>
+            <span className="truncate">{item.label}</span>
+          </button>
           <button
             type="button"
             onClick={(e) => handleRemove(e, item.id)}
+            aria-label={`${item.label} aus zuletzt geoeffnet entfernen`}
             className="cursor-pointer border-none bg-transparent text-xs text-[var(--color-gray)] hover:text-[var(--color-error)]"
           >
             &times;

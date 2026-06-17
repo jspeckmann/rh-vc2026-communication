@@ -4,16 +4,20 @@ import Header from './components/layout/Header.jsx';
 import Sidebar from './components/layout/Sidebar.jsx';
 import Breadcrumb from './components/layout/Breadcrumb.jsx';
 import SubNav from './components/layout/SubNav.jsx';
+import DashboardSection from './components/dashboard/DashboardSection.jsx';
 import ChatSection from './components/chat/ChatSection.jsx';
 import WikiSection from './components/wiki/WikiSection.jsx';
 import NetworkSection from './components/network/NetworkSection.jsx';
 import AIFeedPanel from './components/ai-feed/AIFeedPanel.jsx';
+import GroupsSection from './components/groups/GroupsSection.jsx';
 import AddGroupModal from './components/groups/AddGroupModal.jsx';
 import { useLocalStorage } from './hooks/useLocalStorage.js';
 import { useDarkMode } from './hooks/useDarkMode.js';
-import { defaultGroups } from './data/mocks.js';
+import { fetchGroups } from './services/api.js';
 
 const sectionLabels = {
+  dashboard: 'Dashboard',
+  groups: 'Gruppen',
   chat: 'Chat',
   wiki: 'Wiki',
   network: 'Vernetzungswolke',
@@ -27,14 +31,31 @@ export default function App() {
   const [modalOpen, setModalOpen] = useState(false);
   const [filter, setFilter] = useState('all');
   const [recentItems, setRecentItems] = useLocalStorage('recentItems', []);
-  const [groups, setGroups] = useLocalStorage('groups', defaultGroups);
+  const [groups, setGroups] = useState([]);
+  const [groupsLoadError, setGroupsLoadError] = useState(false);
 
   const currentSection = location.pathname.replace('/', '') || 'chat';
   const breadcrumbLabel = sectionLabels[currentSection] || 'Chat';
 
   useEffect(() => {
-    document.title = `CPP — Kommunikation — ${breadcrumbLabel}`;
+    document.title = `CPP - Kommunikation - ${breadcrumbLabel}`;
   }, [breadcrumbLabel]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchGroups()
+      .then((items) => {
+        if (cancelled) return;
+        setGroups(items.map((group) => ({ ...group, collapsed: false })));
+        setGroupsLoadError(false);
+      })
+      .catch(() => {
+        if (!cancelled) setGroupsLoadError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleNavigate = useCallback((section) => {
     if (section === 'ai-feed') {
@@ -48,7 +69,13 @@ export default function App() {
   useEffect(() => {
     const label = sectionLabels[currentSection];
     if (!label) return;
-    const iconMap = { chat: '\u{1F4AC}', wiki: '\u{1F4DA}', network: '\u{1F310}' };
+    const iconMap = {
+      dashboard: '\u{1F4CA}',
+      groups: '\u{1F465}',
+      chat: '\u{1F4AC}',
+      wiki: '\u{1F4DA}',
+      network: '\u{1F310}',
+    };
     setRecentItems((prev) => {
       const exists = prev.some((item) => item.route === currentSection);
       if (exists) return prev;
@@ -81,6 +108,7 @@ export default function App() {
         currentSection={currentSection}
         groups={groups}
         setGroups={setGroups}
+        groupsLoadError={groupsLoadError}
         recentItems={recentItems}
         setRecentItems={setRecentItems}
       />
@@ -91,6 +119,8 @@ export default function App() {
         <div className="flex-1 overflow-y-auto p-6 bg-[var(--color-bg)]">
           <Routes>
             <Route path="/" element={<Navigate to="/chat" replace />} />
+            <Route path="/dashboard" element={<DashboardSection onNavigate={handleNavigate} />} />
+            <Route path="/groups" element={<GroupsSection />} />
             <Route path="/chat" element={<ChatSection filter={filter} />} />
             <Route path="/wiki" element={<WikiSection />} />
             <Route path="/network" element={<NetworkSection />} />
