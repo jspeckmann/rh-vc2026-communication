@@ -12,6 +12,7 @@ dist
 dist-ssr
 .vite
 *.local
+ui-chat-*.png
 
 # Editor directories and files
 .vscode/*

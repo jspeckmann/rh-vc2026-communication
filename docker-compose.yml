@@ -1,0 +1,47 @@
+services:
+  team1-kommunikation:
+    build: .
+    restart: unless-stopped
+    environment:
+      APP_HOST: 0.0.0.0
+      PORT: "8001"
+      DATABASE_URL: postgres://team1:${POSTGRES_PASSWORD:-team1_dev_password}@team1-postgres:5432/team1_kommunikation
+      AUTH_JWT_ISSUER: ${AUTH_JWT_ISSUER:-}
+      MATRIX_HOMESERVER_URL: ${MATRIX_HOMESERVER_URL:-}
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+    depends_on:
+      team1-postgres:
+        condition: service_healthy
+    networks:
+      - cpp-edge
+      - team1-internal
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.team1-kommunikation.rule=PathPrefix(`/api/chat`)
+      - traefik.http.services.team1-kommunikation.loadbalancer.server.port=8001
+
+  team1-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: team1
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-team1_dev_password}
+      POSTGRES_DB: team1_kommunikation
+    volumes:
+      - team1-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U team1 -d team1_kommunikation"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - team1-internal
+
+networks:
+  cpp-edge:
+    external: true
+  team1-internal:
+
+volumes:
+  team1-postgres-data:

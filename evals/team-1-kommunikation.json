@@ -1,0 +1,479 @@
+{
+  "module": "Kommunikation",
+  "team": 1,
+  "route": "/chat",
+  "port": 8001,
+  "updatedAt": "2026-06-17",
+  "purpose": "Maschinenlesbare Readiness-Evals fuer das Team-1-Kommunikationsmodul",
+  "humanSource": "docs/team-1/evals.md",
+  "statusValues": ["not_checked", "pass", "partial", "fail"],
+  "statusRules": {
+    "not_checked": "Noch nicht bewertet.",
+    "pass": "Kriterium ist im richtigen Layer erfuellt und mit aktueller, reproduzierbarer Evidence belegt. Runtime-pass braucht einen frisch ausgefuehrten Runtime-Check.",
+    "partial": "Richtung stimmt, aber es ist nur dokumentiert, noch nicht geprueft oder haengt an externer Antwort mit Fallback.",
+    "fail": "Fehlt, widerspricht anderen Dateien, blockiert Submit ohne Owner oder behauptet Laufbarkeit ohne Nachweis."
+  },
+  "submitRule": "Doku-pass ersetzt keinen Runtime-pass. Vor Submit muessen Runtime-Punkte lokal/mockbar laufen oder als externe Abhaengigkeit mit Owner, Frage, Fallback und Blocker-Status markiert sein.",
+  "freshEvidenceScope": {
+    "checkedBySpurD": [
+      "jq empty evals/team-1-kommunikation.json"
+    ],
+    "checkedByMain": [
+      "cargo fmt --check",
+      "cargo check --locked",
+      "cargo test --locked (12 Tests)",
+      "npm --prefix frontend run lint",
+      "npm --prefix frontend run build",
+      "npm run check",
+      "jq empty evals/team-1-kommunikation.json",
+      "git diff --check",
+      "curl -fsS http://127.0.0.1:8001/health",
+      "curl -fsS http://127.0.0.1:8001/api/chat/dashboard",
+      "In-App-Browser http://127.0.0.1:5174/dashboard: Dashboard geladen, Feed-Rebuild bestaetigt, keine Console-Warnungen",
+      "In-App-Browser http://127.0.0.1:5174/groups: Gruppenansicht mit Chat-User/Chat-Raeume geladen, keine sichtbaren Matrix/Mock/Dummy/Recent-Reste",
+      "ssh david@192.168.2.250 docker compose config --quiet in /tmp-Kopie",
+      "ssh david@192.168.2.250 docker compose build in /tmp-Kopie (fail: crates.io DNS/getaddrinfo)",
+      "ssh david@192.168.2.250 cargo test --locked in /tmp-Kopie (fail: cargo command not found)"
+    ],
+    "notClaimedBySpurD": [
+      "Docker/Compose/PostgreSQL-Runtime",
+      "Synapse-Runtime",
+      "vollstaendiger Browser-Readback aller Create-/Update-Schreibflows"
+    ]
+  },
+  "askVsImplement": {
+    "implementWithoutAsking": [
+      "/chat, Port 8001, REST/JSON",
+      "GET /health",
+      "API.md/OpenAPI-Vertrag",
+      "PostgreSQL-Schema nach docs/team-1/database.md",
+      "Seed-Daten",
+      "Dummy-Useradapter",
+      "Mock-LLM und Agent-Feed",
+      "Daumen-hoch/-runter-Feedback",
+      "Knowledge Graph und Dashboard aus Demo-Daten",
+      ".env.example nur mit Platzhaltern"
+    ],
+    "askOrCountercheckFirst": [
+      "echte JWT-Felder, Issuer, Rollen und Admin-Rechte",
+      "echter Usermodul-Endpunkt und stabile User-ID",
+      "Synapse: Raeume anlegen oder nur verlinken",
+      "Gateway/Traefik und modules.json",
+      "ob /openapi.json zwingend live sein muss",
+      "ob Team 4 Agent-Task-Listen spaeter importiert",
+      "finaler LLM-Provider und ENV-Namen"
+    ]
+  },
+  "evals": [
+    {
+      "id": "COMM-DOC-001",
+      "legacyIds": ["EVAL-COMM-002", "EVAL-COMM-013"],
+      "layer": "documentation",
+      "requiredFor": ["planning", "submit"],
+      "status": "pass",
+      "ownerTeam": 1,
+      "dependsOn": [],
+      "externalDependencies": [],
+      "intent": "Ein neues Teammitglied versteht ohne Chat-Historie, was Team 1 baut und was nicht.",
+      "checks": [
+        {
+          "id": "COMM-DOC-001-C1",
+          "text": "Projektkontext und Team-1-Index zeigen die aktuelle Arbeitswahrheit.",
+          "kind": "documentation",
+          "status": "pass",
+          "evidence": [
+            {"path": "docs/project-context.md"},
+            {"path": "docs/team-1/index.md"},
+            {"command": "jq empty evals/team-1-kommunikation.json"}
+          ],
+          "passWhen": "Kernfakten sind eindeutig und alte MVP-Dateien sind als Archiv markiert.",
+          "partialWhen": "Doku ist vorhanden, aber noch nicht gegen tote Links geprueft.",
+          "failWhen": "Alte OpenBoard-MVP-Dateien wirken wie aktuelle Wahrheit."
+        }
+      ]
+    },
+    {
+      "id": "COMM-CONTRACT-001",
+      "legacyIds": ["EVAL-COMM-001", "EVAL-COMM-004"],
+      "layer": "contract",
+      "requiredFor": ["planning", "submit"],
+      "status": "pass",
+      "ownerTeam": 1,
+      "dependsOn": ["COMM-DOC-001"],
+      "externalDependencies": [
+        {
+          "team": "Team 3",
+          "question": "Reicht API.md fuer Submit, oder muss /openapi.json zwingend live sein?",
+          "blocking": false,
+          "fallback": "API.md als Vertragsdoku liefern; /openapi.json ist statisch im Code vorgesehen, aber ohne frischen Runtime-Readback kein Live-Beleg"
+        }
+      ],
+      "intent": "Andere Teams koennen das Modul ueber REST/JSON anbinden.",
+      "checks": [
+        {
+          "id": "COMM-CONTRACT-001-C1",
+          "text": "API.md beschreibt Endpunkte, Request-/Response-Beispiele und Fehlerformat.",
+          "kind": "documentation",
+          "status": "pass",
+          "evidence": [
+            {"path": "API.md"},
+            {"path": "src/lib.rs"},
+            {"path": "src/routes.rs", "detail": "statisch gelesen: PUT /api/chat/wiki/{id}, POST /api/chat/feed/rebuild, GET/POST /api/chat/knowledge/nodes, GET/POST /api/chat/knowledge/edges und Matrix-Link-Endpunkte sind als Routen vorhanden; Backend-Validierung fuer Knowledge Graph, Matrix-IDs, Member-Rollen, Agent-Analyze und spezifische Wiki-/Agent-404s ist implementiert"},
+            {"command": "cargo fmt --check"},
+            {"command": "cargo check --locked"},
+            {"command": "cargo test --locked", "detail": "12 Tests bestanden, inklusive negativer Validierungschecks fuer fehlende Pflichtfelder, Matrix-ID, Knowledge-Self-Edge, unbekannte Knowledge-Nodes und unbekannte Agent-Quellen"},
+            {"note": "401 ist geplanter Auth-Fehler bis Team 3/5 JWT-Details liefert; Matrix-503 ist als Fehlerformat/Helper dokumentiert, aber kein frisch belegter Synapse-Runtime-Pfad"}
+          ],
+          "passWhen": "API.md ist gegen Architektur und DB-Plan geprueft und trennt implementierte Routen von geplanten Auth-/Synapse-Fehlerpfaden.",
+          "partialWhen": "API.md existiert, aber es gibt noch keinen Runtime-Readback.",
+          "failWhen": "API-Vertrag fehlt oder widerspricht der Architektur."
+        }
+      ]
+    },
+    {
+      "id": "COMM-DATA-001",
+      "legacyIds": ["EVAL-COMM-003", "EVAL-COMM-009"],
+      "layer": "data",
+      "requiredFor": ["submit"],
+      "status": "partial",
+      "ownerTeam": 1,
+      "dependsOn": ["COMM-CONTRACT-001"],
+      "externalDependencies": [
+        {
+          "team": "Backend-Team",
+          "question": "Welche Migrationsstrategie nutzt das finale Repo: SQLx-Migrationen oder schema.sql/seed.sql?",
+          "blocking": true,
+          "fallback": "Hackathon-taugliche idempotente Init mit Schema und Seed-Funktion"
+        }
+      ],
+      "intent": "PostgreSQL ist die Modul-Wahrheit fuer Gruppen, Wiki, Feed, Graph, Agent-Feed, Feedback und Matrix-Links.",
+      "checks": [
+        {
+          "id": "COMM-DATA-001-C1",
+          "text": "DB-Plan beschreibt Mindesttabellen, Beziehungen, ENV und Submit-Gates.",
+          "kind": "documentation",
+          "status": "partial",
+          "evidence": [
+            {"path": "docs/team-1/database.md"},
+            {"path": "Cargo.toml", "detail": "SQLx/PostgreSQL-Abhaengigkeit vorbereitet"},
+            {"path": "src/db.rs", "detail": "SQLx-Queries fuer Groups, Threads, Messages, Wiki, Feed, Graph, Agent, Feedback und Matrix-Links"},
+            {"path": "src/state.rs", "detail": "App-State schaltet ueber DATABASE_URL zwischen PostgreSQL und Mock-Fallback"},
+            {"path": "migrations/202606170001_team1_kommunikation.sql"},
+            {"path": "migrations/202606170002_demo_seed.sql"},
+            {"note": "Kein frischer PostgreSQL-/SQLx-Runtime-Readback durch Spur D; daher bleibt COMM-DATA-001 partial und blocking fuer Submit-pass"}
+          ],
+          "passWhen": "Schema ist implementiert oder eindeutig aus dem DB-Plan ableitbar.",
+          "partialWhen": "Schema ist implementiert, aber nicht gegen echte PostgreSQL-Runtime geprueft.",
+          "failWhen": "Matrix wird als alleinige Datenwahrheit behandelt oder Agent-Feedback fehlt."
+        }
+      ]
+    },
+    {
+      "id": "COMM-SEED-001",
+      "legacyIds": ["EVAL-COMM-006"],
+      "layer": "data",
+      "requiredFor": ["demo", "submit"],
+      "status": "partial",
+      "ownerTeam": 1,
+      "dependsOn": ["COMM-DATA-001"],
+      "externalDependencies": [],
+      "intent": "Das Modul startet nicht leer.",
+      "checks": [
+        {
+          "id": "COMM-SEED-001-C1",
+          "text": "Seed-Daten enthalten mindestens 3 User, 2 Gruppen, Threads, Wiki, Feed, Graph, Agent-Feed und Feedback.",
+          "kind": "runtime",
+          "status": "partial",
+          "evidence": [
+            {"path": "src/seed.rs"},
+            {"path": "migrations/202606170002_demo_seed.sql"},
+            {"note": "Seed-Daten sind statisch vorhanden; kein frischer Start-/API-Readback durch Spur D"}
+          ],
+          "passWhen": "Seed-Daten werden reproduzierbar angelegt und Hauptansichten sind nicht leer.",
+          "partialWhen": "Seed-Daten sind dokumentiert oder statisch implementiert, aber nicht frisch gegen eine laufende Runtime gelesen.",
+          "failWhen": "Hauptansichten starten leer."
+        }
+      ]
+    },
+    {
+      "id": "COMM-RUN-001",
+      "legacyIds": ["EVAL-COMM-001"],
+      "layer": "runtime",
+      "requiredFor": ["submit"],
+      "status": "partial",
+      "ownerTeam": 1,
+      "dependsOn": ["COMM-CONTRACT-001"],
+      "externalDependencies": [],
+      "intent": "Das Modul ist lokal auf Port 8001 pruefbar.",
+      "checks": [
+        {
+          "id": "COMM-RUN-001-C1",
+          "text": "GET /health liefert {\"status\":\"ok\"}.",
+          "kind": "runtime",
+          "status": "partial",
+          "evidence": [
+            {"path": "src/lib.rs", "detail": "GET /health ist statisch als Route vorhanden"},
+            {"note": "Kein frischer curl/HTTP-Readback gegen Port 8001 durch Spur D"}
+          ],
+          "passWhen": "Lokaler Readback bestaetigt Status ok.",
+          "partialWhen": "Healthcheck ist dokumentiert oder statisch implementiert, aber nicht frisch per HTTP belegt.",
+          "failWhen": "Kein Healthcheck oder falscher Port/falsche Route."
+        }
+      ]
+    },
+    {
+      "id": "COMM-MATRIX-001",
+      "legacyIds": ["EVAL-COMM-008"],
+      "layer": "integration",
+      "requiredFor": ["submit"],
+      "status": "partial",
+      "ownerTeam": 1,
+      "dependsOn": ["COMM-DATA-001", "COMM-RUN-001"],
+      "externalDependencies": [
+        {
+          "team": "Team 3/DevOps",
+          "question": "Wie wird Synapse im Compose/Gateway eingebunden?",
+          "blocking": true,
+          "fallback": "Matrix-Link API mit Dummy-Rooms lokal pruefen und Synapse-Readback als offenes Gate markieren"
+        },
+        {
+          "team": "Team 1/Backend",
+          "question": "Legt unser Modul Matrix-Raeume selbst an oder verlinkt es vorhandene Raeume?",
+          "blocking": false,
+          "fallback": "Fuer Submit zuerst vorhandene/Dummy-Raeume verlinken"
+        }
+      ],
+      "intent": "Matrix ist Chat-Layer und per API mit Usern/Gruppen verlinkbar.",
+      "checks": [
+        {
+          "id": "COMM-MATRIX-001-C1",
+          "text": "User- und Room-Link-Endpunkte sind vorhanden; echter Synapse-Service und Matrix-Ausfallpfad sind noch nicht belegt.",
+          "kind": "integration",
+          "status": "partial",
+          "evidence": [
+            {"path": "API.md"},
+            {"path": "docs/team-1/database.md"},
+            {"path": "migrations/202606170001_team1_kommunikation.sql"},
+            {"path": "src/routes.rs", "detail": "Matrix-User- und Matrix-Room-Link-Routen sind statisch vorhanden"},
+            {"path": "docker-compose.yml", "detail": "aktuell API + PostgreSQL; kein Synapse-Service"},
+            {"path": "src/error.rs", "detail": "matrix_unavailable-Helper existiert, wird aber von keinem frisch belegten Synapse-Pfad genutzt"}
+          ],
+          "passWhen": "User/Raum-Link funktioniert lokal, ein echter Synapse-Service ist gestartet oder per Compose belegt, und Matrix-Ausfall liefert reproduzierbar 503.",
+          "partialWhen": "Link-API existiert, aber echter Synapse-Readback oder 503-Ausfallpfad fehlt.",
+          "failWhen": "Matrix ist nur Zukunftsidee oder ersetzt PostgreSQL/Usermodul."
+        }
+      ]
+    },
+    {
+      "id": "COMM-KG-001",
+      "legacyIds": ["EVAL-COMM-010"],
+      "layer": "runtime",
+      "requiredFor": ["submit"],
+      "status": "partial",
+      "ownerTeam": 1,
+      "dependsOn": ["COMM-DATA-001", "COMM-SEED-001"],
+      "externalDependencies": [],
+      "intent": "Beziehungen sind sichtbar und per API abrufbar.",
+      "checks": [
+        {
+          "id": "COMM-KG-001-C1",
+          "text": "GET /api/chat/knowledge/graph liefert Nodes und Edges; Dashboard zeigt Graph-Zusammenfassung.",
+          "kind": "runtime",
+          "status": "partial",
+          "evidence": [
+            {"path": "src/routes.rs", "detail": "Knowledge-Graph- und Dashboard-Routen sind statisch vorhanden"},
+            {"path": "src/seed.rs", "detail": "Demo-Nodes und Demo-Edges sind statisch vorhanden"},
+            {"note": "Kein frischer API-Readback fuer /api/chat/knowledge/graph oder /api/chat/dashboard durch Spur D"}
+          ],
+          "passWhen": "Graph- und Dashboard-Endpunkte liefern Demo-Daten.",
+          "partialWhen": "Graph-Struktur ist dokumentiert oder statisch implementiert, aber nicht frisch per Runtime belegt.",
+          "failWhen": "Knowledge Graph ist nicht abrufbar."
+        }
+      ]
+    },
+    {
+      "id": "COMM-AGENT-001",
+      "legacyIds": ["EVAL-COMM-011"],
+      "layer": "runtime",
+      "requiredFor": ["submit"],
+      "status": "partial",
+      "ownerTeam": 1,
+      "dependsOn": ["COMM-DATA-001", "COMM-SEED-001"],
+      "externalDependencies": [
+        {
+          "team": "Team 1",
+          "question": "Welcher LLM-Provider und welche ENV-Namen werden genutzt?",
+          "blocking": false,
+          "fallback": "LLM_MOCK_MODE=true und Platzhalter in .env.example"
+        },
+        {
+          "team": "Team 4",
+          "question": "Soll Team 4 Agent-Task-Listen spaeter importieren?",
+          "blocking": false,
+          "fallback": "Agent-Task-Listen bleiben im Kommunikationsmodul sichtbar"
+        }
+      ],
+      "intent": "Der Agent erzeugt nuetzliche Feed-Elemente und sammelt Feedback.",
+      "checks": [
+        {
+          "id": "COMM-AGENT-001-C1",
+          "text": "POST /api/chat/agent/analyze erzeugt Agent-Feed-Elemente; Feedback wird gespeichert.",
+          "kind": "runtime",
+          "status": "partial",
+          "evidence": [
+            {"path": "src/routes.rs", "detail": "Agent-Analyze-, Agent-Feed- und Feedback-Routen sind statisch vorhanden"},
+            {"path": "src/seed.rs", "detail": "Demo-Agent-Feed und Demo-Feedback sind statisch vorhanden"},
+            {"note": "Kein frischer POST/GET-Runtime-Readback fuer Agent-Analyze oder Feedback durch Spur D"}
+          ],
+          "passWhen": "Mock/Fallback erzeugt Items und Daumen-hoch/-runter persistiert.",
+          "partialWhen": "Agent-Feed ist dokumentiert oder statisch implementiert, aber nicht frisch per Runtime belegt.",
+          "failWhen": "Agent verlangt zwingend echten Key oder nutzt alte Accept/Reject-Logik."
+        }
+      ]
+    },
+    {
+      "id": "COMM-USER-001",
+      "legacyIds": ["EVAL-COMM-012"],
+      "layer": "runtime",
+      "requiredFor": ["submit"],
+      "status": "partial",
+      "ownerTeam": 1,
+      "dependsOn": ["COMM-RUN-001"],
+      "externalDependencies": [
+        {
+          "team": "Team 5",
+          "question": "Wie heisst der echte User-Endpunkt und welches Feld ist die stabile User-ID?",
+          "blocking": false,
+          "fallback": "Dummy-Useradapter bleibt aktiv und austauschbar"
+        }
+      ],
+      "intent": "Das Modul ist testbar, obwohl das Usermodul noch nicht fertig ist.",
+      "checks": [
+        {
+          "id": "COMM-USER-001-C1",
+          "text": "GET /api/chat/users und GET /api/chat/users/:id funktionieren im Dummy-Modus.",
+          "kind": "runtime",
+          "status": "partial",
+          "evidence": [
+            {"path": "src/state.rs"},
+            {"path": "src/seed.rs"},
+            {"path": "src/routes.rs", "detail": "GET /api/chat/users und GET /api/chat/users/{id} sind statisch vorhanden"},
+            {"note": "Kein frischer API-Readback fuer Dummy-User durch Spur D"}
+          ],
+          "passWhen": "Dummy-User sind per API erreichbar und austauschbar markiert.",
+          "partialWhen": "Dummy-Daten sind dokumentiert oder statisch implementiert, aber nicht frisch per API belegt.",
+          "failWhen": "Das Modul baut eigene zentrale Userprofile als Wahrheit."
+        }
+      ]
+    },
+    {
+      "id": "COMM-DEP-001",
+      "legacyIds": ["EVAL-COMM-005", "EVAL-COMM-007"],
+      "layer": "dependency",
+      "requiredFor": ["submit"],
+      "status": "partial",
+      "ownerTeam": 1,
+      "dependsOn": ["COMM-DOC-001"],
+      "externalDependencies": [
+        {
+          "team": "Team 1/Backend",
+          "question": "Wann gibt es echten Docker-/PostgreSQL-Runtime-Readback fuer Compose, Schema, Seed und SQLx-Pfade?",
+          "blocking": true,
+          "fallback": "SQLx-Repository optional ueber DATABASE_URL nutzen; ohne DATABASE_URL Mock-State verwenden und echte Runtime als partial markieren"
+        },
+        {
+          "team": "Team 3/5",
+          "question": "Welche JWT-Felder, Issuer, Rollen und Admin-Rechte gelten?",
+          "blocking": true,
+          "fallback": "lokal/mockbar bleiben und Auth-Platzhalter dokumentieren"
+        },
+        {
+          "team": "Team 5",
+          "question": "Wie heisst der echte User-Endpunkt und welches Feld ist die stabile User-ID?",
+          "blocking": false,
+          "fallback": "Dummy-Useradapter bleibt aktiv und austauschbar"
+        },
+        {
+          "team": "Team 3",
+          "question": "Wie wird das Modul in Gateway/Traefik/modules.json registriert?",
+          "blocking": true,
+          "fallback": "Compose-/Traefik-Snippet dokumentieren"
+        },
+        {
+          "team": "Team 3/DevOps",
+          "question": "Wie wird Synapse im Compose/Gateway eingebunden?",
+          "blocking": true,
+          "fallback": "Matrix-Link API mit Dummy-Rooms lokal pruefen und Synapse-Readback als offenes Gate markieren"
+        },
+        {
+          "team": "Team 4",
+          "question": "Soll Team 4 Agent-Task-Listen spaeter importieren?",
+          "blocking": false,
+          "fallback": "Agent-Task-Listen bleiben im Kommunikationsmodul sichtbar"
+        },
+        {
+          "team": "Team 1",
+          "question": "Welcher LLM-Provider und welche ENV-Namen werden genutzt?",
+          "blocking": false,
+          "fallback": "LLM_MOCK_MODE=true und Platzhalter in .env.example"
+        }
+      ],
+      "intent": "Offene Team-Abhaengigkeiten sind sichtbar und blockieren nicht heimlich.",
+      "checks": [
+        {
+          "id": "COMM-DEP-001-C1",
+          "text": "Jede offene Abhaengigkeit hat Owner, Frage, Fallback und Blocker-Status.",
+          "kind": "documentation",
+          "status": "partial",
+          "evidence": [
+            {"path": "docs/team-1/database.md"},
+            {"path": "docs/team-1/evals.md"},
+            {"path": "evals/team-1-kommunikation.json"},
+            {"note": "Keine frische Docker/SSH/Gateway/Synapse/Auth-Runtime-Evidence durch Spur D; blocker-Flags markieren Submit-Gates, die nicht heimlich als pass zaehlen duerfen"}
+          ],
+          "passWhen": "Alle externen Punkte sind beantwortet oder mit Fallback und passendem Blocker-Status markiert; keine offene Abhaengigkeit verhindert Submit-pass.",
+          "partialWhen": "Abhaengigkeiten sind benannt, aber noch nicht beantwortet.",
+          "failWhen": "Externe Antwort blockiert Submit ohne Owner oder Fallback."
+        }
+      ]
+    },
+    {
+      "id": "COMM-SUBMIT-001",
+      "legacyIds": ["EVAL-COMM-014"],
+      "layer": "submit",
+      "requiredFor": ["submit"],
+      "status": "partial",
+      "ownerTeam": 1,
+      "dependsOn": [
+        "COMM-DOC-001",
+        "COMM-CONTRACT-001",
+        "COMM-DATA-001",
+        "COMM-SEED-001",
+        "COMM-RUN-001",
+        "COMM-MATRIX-001",
+        "COMM-KG-001",
+        "COMM-AGENT-001",
+        "COMM-USER-001",
+        "COMM-DEP-001"
+      ],
+      "externalDependencies": [],
+      "intent": "Das Modul ist abgabefaehig, nicht nur geplant.",
+      "checks": [
+        {
+          "id": "COMM-SUBMIT-001-C1",
+          "text": "Submit bleibt partial, bis alle Submit-relevanten Evals mit frischem Runtime-Readback pass sind; externe Abhaengigkeiten mit Fallback ersetzen kein echtes Gate.",
+          "kind": "submit",
+          "status": "partial",
+          "evidence": [
+            {"command": "jq empty evals/team-1-kommunikation.json", "detail": "Spur-D-Pflichtcheck fuer Eval-JSON-Syntax"},
+            {"note": "Kein frischer cargo/curl/Docker/SSH/Browser-Readback durch Spur D"},
+            {"note": "Docker, echte PostgreSQL-Runtime, Synapse, Gateway/Auth, 401-Middleware, Matrix-503-Runtime-Pfad, echtes Usermodul und Team-4-Import bleiben ohne echten Readback beziehungsweise Team-Vertrag partial/blocking"}
+          ],
+          "passWhen": "Health, API, DB, Seeds, Dummy-User, Matrix-Linking, Graph, Agent, Dashboard und Docker/Gateway/Synapse-Gates sind frisch belegt.",
+          "partialWhen": "Doku und Codepfade sind sichtbar, aber Runtime-Readbacks oder externe Vertrage fehlen.",
+          "failWhen": "nur Doku existiert und kein lauffaehiger Kern nachweisbar ist."
+        }
+      ]
+    }
+  ]
+}
