@@ -1,0 +1,60 @@
+# Eigenständiges Compose-Setup für lokale Entwicklung von Team 2.
+# Im Hackathon-Deploy wird der Service-Block in das Orchestrator-Repo
+# (VibeCodedAdministration) übernommen — siehe docker-compose.snippet.yml.
+
+services:
+  files-db:
+    image: postgres:16-alpine
+    container_name: files-db
+    environment:
+      POSTGRES_USER: ${PGUSER:-files}
+      POSTGRES_PASSWORD: ${PGPASSWORD:-files}
+      POSTGRES_DB: ${PGDATABASE:-files}
+    volumes:
+      - files-db-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  team2-dateimanagement:
+    build: .
+    container_name: team2-dateimanagement
+    environment:
+      PORT: 8002
+      PGHOST: files-db
+      PGUSER: ${PGUSER:-files}
+      PGPASSWORD: ${PGPASSWORD:-files}
+      PGDATABASE: ${PGDATABASE:-files}
+      STORAGE_DIR: /data/files
+      AUTH_JWKS_URL: ${AUTH_JWKS_URL:-http://authentik-server:9000/auth/application/o/cpp/jwks/}
+      AUTH_ISSUER: ${AUTH_ISSUER:-}
+      AUTH_AUDIENCE: ${AUTH_AUDIENCE:-}
+      AUTH_SUBJECT_CLAIM: ${AUTH_SUBJECT_CLAIM:-sub}
+      # Lokal: Auth per Header umgehen. Im Deploy auf 'false' lassen!
+      AUTH_ALLOW_DEV_HEADER: ${AUTH_ALLOW_DEV_HEADER:-true}
+      STYLES_DIR: /shared-styles
+    volumes:
+      - files-storage:/data/files
+      - ../:/shared-styles:ro
+    ports:
+      - "8002:8002"
+    depends_on:
+      - files-db
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.team2.rule=PathPrefix(`/files`)
+      - traefik.http.services.team2.loadbalancer.server.port=8002
+    restart: unless-stopped
+
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    restart: unless-stopped
+    command: http team2-dateimanagement:8002 --log=stdout
+    environment:
+      - NGROK_AUTHTOKEN=3CApTLLqQTo7EimId47eRfQvN43_4oEjVcpesgPgH8TSDFT7J
+    ports:
+      - "8501:4040"
+    depends_on:
+      - team2-dateimanagement
+volumes:
+  files-db-data:
+  files-storage:
