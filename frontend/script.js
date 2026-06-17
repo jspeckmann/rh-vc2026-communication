@@ -1,67 +1,77 @@
-// ===== Basis-URL und Konfiguration =====
-const BASE_URL = '/chat/api'; // Basis-URL für API-Aufrufe
-const AUTH_URL = '/auth';     // Authentik-URL für JWT
+// =============================================
+// KONFIGURATION
+// =============================================
+const CONFIG = {
+  BASE_URL: '/chat/api',       // Basis-URL für API-Aufrufe
+  AUTH_URL: '/auth',           // Authentik-URL
+  STORAGE_KEYS: {
+    THEME: 'theme',
+    TOKEN: 'authToken'
+  }
+};
 
-// ===== Darkmode =====
+// =============================================
+// DARKMODE
+// =============================================
+/**
+ * Prüft, ob das Betriebssystem Darkmode bevorzugt
+ */
 function checkOSDarkMode() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
-// Setze initialen Darkmode basierend auf OS-Präferenz oder localStorage
+/**
+ * Setzt das Theme-Attribut auf dem <html>-Element
+ */
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem(CONFIG.STORAGE_KEYS.THEME, theme);
+}
+
+/**
+ * Initialisiert den Darkmode basierend auf localStorage oder OS-Präferenz
+ */
 function initDarkMode() {
-  const savedTheme = localStorage.getItem('theme');
+  const savedTheme = localStorage.getItem(CONFIG.STORAGE_KEYS.THEME);
   const osPrefersDark = checkOSDarkMode();
 
   if (savedTheme) {
-    document.documentElement.setAttribute('data-theme', savedTheme);
+    setTheme(savedTheme);
   } else if (osPrefersDark) {
-    document.documentElement.setAttribute('data-theme', 'dark');
+    setTheme('dark');
+  } else {
+    setTheme('light');
   }
 }
 
-// Darkmode-Toggle
-document.getElementById('dark-mode-toggle')?.addEventListener('click', () => {
+/**
+ * Toggle zwischen Lightmode und Darkmode
+ */
+function toggleDarkMode() {
   const currentTheme = document.documentElement.getAttribute('data-theme');
   const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', newTheme);
-  localStorage.setItem('theme', newTheme);
-});
+  setTheme(newTheme);
+}
 
-// Watch for OS dark mode changes
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-  if (!localStorage.getItem('theme')) {
-    document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
-  }
-});
-
-// ===== API-Helper mit JWT =====
+// =============================================
+// API-HELPER (mit JWT)
+// =============================================
 /**
  * Führt einen API-Aufruf mit JWT-Authentifizierung aus
- * @param {string} endpoint - API-Endpunkt (z. B. '/messages')
- * @param {Object} options - Fetch-Optionen (z. B. { method: 'POST', body: {...} })
- * @returns {Promise<Object>} - JSON-Antwort
  */
 async function fetchWithAuth(endpoint, options = {}) {
-  const token = localStorage.getItem('authToken');
-
+  const token = localStorage.getItem(CONFIG.STORAGE_KEYS.TOKEN);
   const defaultOptions = {
     headers: {
       'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
-      ...options.headers,
+      ...(token && { 'Authorization': `Bearer ${token}` })
     },
+    ...options
   };
 
   try {
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
-      ...defaultOptions,
-      ...options,
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
+    const response = await fetch(`${CONFIG.BASE_URL}${endpoint}`, defaultOptions);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     return await response.json();
   } catch (error) {
     console.error('API-Aufruf fehlgeschlagen:', error);
@@ -69,60 +79,80 @@ async function fetchWithAuth(endpoint, options = {}) {
   }
 }
 
-// ===== Navigation =====
-const mainNavButtons = document.querySelectorAll('.left-nav .btn-nav');
-const subNavButtons = document.querySelectorAll('.sub-nav .btn-subnav');
-
-// Hauptnavigation
-mainNavButtons?.forEach(button => {
-  button.addEventListener('click', () => {
-    // Aktiven Button markieren
-    mainNavButtons.forEach(btn => btn.classList.remove('active'));
-    button.classList.add('active');
-
-    // Abschnitt anzeigen
-    const sectionId = button.id.replace('-btn', '-section');
-    showSection(sectionId);
-    updateBreadcrumb(button.textContent.trim());
-
-    // Zu zuletzt geöffnet hinzufügen
-    addToRecent(button);
-
-    // Spezielle Aktionen
-    if (sectionId === 'network-section') {
-      initNetworkGraph();
-    } else if (button.id === 'ai-feed-btn') {
-      toggleAIFeedPanel();
-    } else {
-      // AI Feed Panel schließen, wenn andere Section ausgewählt
-      document.getElementById('ai-feed-panel')?.classList.remove('active');
-    }
-  });
-});
-
-// Sub-Navigation
-subNavButtons?.forEach(button => {
-  button.addEventListener('click', () => {
-    subNavButtons.forEach(btn => btn.classList.remove('active'));
-    button.classList.add('active');
-  });
-});
-
+// =============================================
+// DOM-UTILITIES
+// =============================================
+/**
+ * Zeigt einen Abschnitt an und versteckt alle anderen
+ */
 function showSection(sectionId) {
-  document.querySelectorAll('.section')?.forEach(section => {
+  document.querySelectorAll('.section').forEach(section => {
     section.classList.remove('active');
   });
-  document.getElementById(sectionId)?.classList.add('active');
+  const section = document.getElementById(sectionId);
+  if (section) section.classList.add('active');
 }
 
+/**
+ * Aktualisiert den Breadcrumb
+ */
 function updateBreadcrumb(text) {
   const breadcrumbCurrent = document.getElementById('breadcrumb-current');
-  if (breadcrumbCurrent) {
-    breadcrumbCurrent.textContent = text;
-  }
+  if (breadcrumbCurrent) breadcrumbCurrent.textContent = text;
 }
 
-// ===== AI Feed Panel =====
+// =============================================
+// NAVIGATION
+// =============================================
+/**
+ * Initialisiert die Navigation
+ */
+function initNavigation() {
+  // Hauptnavigation
+  const mainNavButtons = document.querySelectorAll('.left-nav .btn-nav');
+  mainNavButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      // Aktiven Button markieren
+      mainNavButtons.forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+
+      // Abschnitt anzeigen
+      const sectionId = button.id.replace('-btn', '-section');
+      showSection(sectionId);
+      updateBreadcrumb(button.textContent.trim());
+
+      // Zu zuletzt geöffnet hinzufügen
+      addToRecent(button);
+
+      // Spezielle Aktionen
+      if (sectionId === 'network-section') {
+        if (typeof initNetworkGraph === 'function') initNetworkGraph();
+      } else if (button.id === 'ai-feed-btn') {
+        toggleAIFeedPanel();
+      } else {
+        // AI Feed Panel schließen
+        const aiFeedPanel = document.getElementById('ai-feed-panel');
+        if (aiFeedPanel) aiFeedPanel.classList.remove('active');
+      }
+    });
+  });
+
+  // Sub-Navigation
+  const subNavButtons = document.querySelectorAll('.sub-nav .btn-subnav');
+  subNavButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      subNavButtons.forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+    });
+  });
+}
+
+// =============================================
+// AI FEED PANEL
+// =============================================
+/**
+ * Toggle AI Feed Panel
+ */
 function toggleAIFeedPanel() {
   const aiFeedPanel = document.getElementById('ai-feed-panel');
   if (!aiFeedPanel) return;
@@ -134,17 +164,17 @@ function toggleAIFeedPanel() {
   }
 }
 
-// Lädt AI Feed-Daten (Platzhalter für Backend-Anbindung)
-async function loadAIFeedData() {
+/**
+ * Lädt AI Feed-Daten (Platzhalter für Backend-Anbindung)
+ */
+function loadAIFeedData() {
   const aiFeedContent = document.getElementById('ai-feed-content');
   if (!aiFeedContent) return;
 
   aiFeedContent.innerHTML = '<p class="text-gray">Lade Daten...</p>';
 
-  try {
-    // Beispiel: Daten von Backend laden
-    // const feedItems = await fetchWithAuth('/ai-feed');
-    // Für Demo: Statische Daten
+  // Simuliere API-Aufruf
+  setTimeout(() => {
     const feedItems = [
       {
         title: 'Neue Projekt-Updates',
@@ -153,22 +183,23 @@ async function loadAIFeedData() {
       },
       {
         title: 'Relevante Wiki-Änderungen',
-        description: 'Das Wiki wurde von Max aktualisiert. Enthält neue Details zu JavaScript-Best Practices.',
+        description: 'Das Wiki wurde von Max aktualisiert.',
         time: 'Vor 12 Minuten'
       },
       {
         title: 'Chat-Nachricht für dich',
-        description: 'Lisa hat eine Nachricht in dem Team-Chat hinterlassen, die deine Skills betrifft.',
+        description: 'Lisa hat eine Nachricht in dem Team-Chat hinterlassen.',
         time: 'Vor 25 Minuten'
       }
     ];
 
     renderAIFeedItems(feedItems);
-  } catch (error) {
-    aiFeedContent.innerHTML = '<p class="feedback-error">Fehler beim Laden der Daten.</p>';
-  }
+  }, 500);
 }
 
+/**
+ * Rendert AI Feed-Items
+ */
 function renderAIFeedItems(items) {
   const aiFeedContent = document.getElementById('ai-feed-content');
   if (!aiFeedContent) return;
@@ -187,46 +218,99 @@ function renderAIFeedItems(items) {
   });
 }
 
-// Schließe AI Feed Panel
-document.getElementById('ai-feed-close')?.addEventListener('click', () => {
-  document.getElementById('ai-feed-panel')?.classList.remove('active');
-});
+// =============================================
+// CHAT
+// =============================================
+/**
+ * Initialisiert den Chat
+ */
+function initChat() {
+  const sendBtn = document.getElementById('send-btn');
+  const chatInput = document.getElementById('chat-input');
 
-// ===== Chat =====
-document.getElementById('send-btn')?.addEventListener('click', async () => {
-  const input = document.getElementById('chat-input');
-  const message = input?.value?.trim();
+  if (!sendBtn || !chatInput) return;
 
-  if (message) {
-    const chatMessages = document.getElementById('chat-messages');
+  sendBtn.addEventListener('click', () => {
+    const message = chatInput.value.trim();
+    if (message) {
+      const chatMessages = document.getElementById('chat-messages');
+      if (chatMessages) {
+        chatMessages.innerHTML += `<p class="text-main"><strong>Du:</strong> ${message}</p>`;
+        chatInput.value = '';
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
 
-    // Nachricht anzeigen
-    if (chatMessages) {
-      chatMessages.innerHTML += `<p class="text-main"><strong>Du:</strong> ${message}</p>`;
-      input.value = '';
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-
-    // Beispiel: Nachricht an Backend senden
-    try {
-      await fetchWithAuth('/messages', {
+      // Beispiel: Nachricht an Backend senden
+      fetchWithAuth('/messages', {
         method: 'POST',
         body: JSON.stringify({ text: message })
-      });
-    } catch (error) {
-      console.error('Nachricht konnte nicht gesendet werden:', error);
+      }).catch(console.error);
     }
-  }
-});
+  });
 
-// Enter-Taste für Chat-Input
-document.getElementById('chat-input')?.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') {
-    document.getElementById('send-btn')?.click();
-  }
-});
+  // Enter-Taste für Chat-Input
+  chatInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendBtn.click();
+  });
+}
 
-// ===== Gruppen und "Zuletzt geöffnet" =====
+// =============================================
+// GRUPPEN & ZULETZT GEÖFFNET
+// =============================================
+/**
+ * Fügt ein Element zu "Zuletzt geöffnet" hinzu
+ */
+function addToRecent(button) {
+  const recentSection = document.getElementById('recent-items');
+  if (!recentSection) return;
+
+  const icon = button.querySelector('.icon')?.textContent || '';
+  const text = button.querySelector('span:not(.icon):not(.chevron)')?.textContent || '';
+
+  // Prüfe, ob bereits vorhanden
+  const existingItems = recentSection.querySelectorAll('.recent-item');
+  for (let item of existingItems) {
+    const itemText = item.querySelector('span:not(.icon):not(.chevron)')?.textContent || '';
+    if (itemText === text) return;
+  }
+
+  // Erstelle neues Element
+  const recentItem = document.createElement('div');
+  recentItem.className = 'recent-item';
+  recentItem.innerHTML = `
+    <span class="icon">${icon}</span>
+    <span>${text}</span>
+    <button class="close-btn">×</button>
+  `;
+
+  // Füge am Anfang ein
+  if (recentSection.firstChild) {
+    recentSection.insertBefore(recentItem, recentSection.firstChild);
+  } else {
+    recentSection.appendChild(recentItem);
+  }
+
+  // Close-Event
+  recentItem.querySelector('.close-btn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    recentItem.remove();
+  });
+
+  // Click-Event zum Navigieren
+  recentItem.addEventListener('click', () => {
+    const buttonId = button.id;
+    document.querySelectorAll('.left-nav .btn-nav').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    document.getElementById(buttonId)?.classList.add('active');
+    showSection(buttonId.replace('-btn', '-section'));
+    updateBreadcrumb(text);
+  });
+}
+
+/**
+ * Initialisiert die Standard-Gruppen
+ */
 function initDefaultGroups() {
   const groupContainer = document.getElementById('group-container');
   if (!groupContainer) return;
@@ -301,85 +385,9 @@ function initDefaultGroups() {
   });
 }
 
-function addToRecent(button) {
-  const recentSection = document.getElementById('recent-items');
-  if (!recentSection) return;
-
-  const icon = button.querySelector('.icon')?.textContent || '';
-  const text = button.querySelector('span:not(.icon):not(.chevron)')?.textContent || '';
-
-  // Prüfe, ob bereits in "Zuletzt geöffnet"
-  const existingItems = recentSection.querySelectorAll('.recent-item');
-  for (let item of existingItems) {
-    const itemText = item.querySelector('span:not(.icon):not(.chevron)')?.textContent || '';
-    if (itemText === text) return;
-  }
-
-  // Erstelle neues Element
-  const recentItem = document.createElement('div');
-  recentItem.className = 'recent-item';
-  recentItem.innerHTML = `
-    <span class="icon">${icon}</span>
-    <span>${text}</span>
-    <button class="close-btn">×</button>
-  `;
-
-  // Füge am Anfang ein
-  if (recentSection.firstChild) {
-    recentSection.insertBefore(recentItem, recentSection.firstChild);
-  } else {
-    recentSection.appendChild(recentItem);
-  }
-
-  // Close-Event
-  recentItem.querySelector('.close-btn')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    recentItem.remove();
-  });
-
-  // Click-Event zum Navigieren
-  recentItem.addEventListener('click', () => {
-    const buttonId = button.id;
-    mainNavButtons.forEach(btn => btn.classList.remove('active'));
-    document.getElementById(buttonId)?.classList.add('active');
-    showSection(buttonId.replace('-btn', '-section'));
-    updateBreadcrumb(text);
-  });
-}
-
-// ===== Modal für neue Gruppen =====
-const addGroupBtn = document.getElementById('add-group-btn');
-const modal = document.getElementById('add-group-modal');
-const modalClose = document.getElementById('modal-close');
-const modalCancel = document.getElementById('modal-cancel');
-const modalConfirm = document.getElementById('modal-confirm');
-const groupNameInput = document.getElementById('group-name-input');
-
-addGroupBtn?.addEventListener('click', () => {
-  if (modal) {
-    modal.classList.add('active');
-    if (groupNameInput) groupNameInput.value = '';
-  }
-});
-
-modalClose?.addEventListener('click', () => {
-  modal?.classList.remove('active');
-});
-
-modalCancel?.addEventListener('click', () => {
-  modal?.classList.remove('active');
-});
-
-modalConfirm?.addEventListener('click', () => {
-  if (groupNameInput && modal) {
-    const groupName = groupNameInput.value.trim();
-    if (groupName) {
-      addNewGroup(groupName);
-      modal.classList.remove('active');
-    }
-  }
-});
-
+/**
+ * Fügt eine neue Gruppe hinzu
+ */
 function addNewGroup(name) {
   const groupContainer = document.getElementById('group-container');
   if (!groupContainer) return;
@@ -407,8 +415,97 @@ function addNewGroup(name) {
   });
 }
 
-// ===== Initialisierung =====
-document.addEventListener('DOMContentLoaded', () => {
+// =============================================
+// MODAL FÜR NEUE GRUPPEN
+// =============================================
+/**
+ * Initialisiert das Modal für neue Gruppen
+ */
+function initModal() {
+  const addGroupBtn = document.getElementById('add-group-btn');
+  const modal = document.getElementById('add-group-modal');
+  const modalClose = document.getElementById('modal-close');
+  const modalCancel = document.getElementById('modal-cancel');
+  const modalConfirm = document.getElementById('modal-confirm');
+  const groupNameInput = document.getElementById('group-name-input');
+
+  if (!addGroupBtn || !modal) return;
+
+  addGroupBtn.addEventListener('click', () => {
+    modal.classList.add('active');
+    if (groupNameInput) groupNameInput.value = '';
+  });
+
+  modalClose?.addEventListener('click', () => {
+    modal.classList.remove('active');
+  });
+
+  modalCancel?.addEventListener('click', () => {
+    modal.classList.remove('active');
+  });
+
+  modalConfirm?.addEventListener('click', () => {
+    if (groupNameInput && modal) {
+      const groupName = groupNameInput.value.trim();
+      if (groupName) {
+        addNewGroup(groupName);
+        modal.classList.remove('active');
+      }
+    }
+  });
+}
+
+// =============================================
+// INITIALISIERUNG
+// =============================================
+/**
+ * Initialisiert alle Funktionen beim Laden der Seite
+ */
+function initApp() {
+  // Darkmode initialisieren
   initDarkMode();
+
+  // Darkmode-Toggle
+  const darkModeToggle = document.getElementById('dark-mode-toggle');
+  if (darkModeToggle) {
+    darkModeToggle.addEventListener('click', toggleDarkMode);
+  }
+
+  // OS Darkmode-Änderungen beobachten
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    if (!localStorage.getItem(CONFIG.STORAGE_KEYS.THEME)) {
+      setTheme(e.matches ? 'dark' : 'light');
+    }
+  });
+
+  // Navigation initialisieren
+  initNavigation();
+
+  // Chat initialisieren
+  initChat();
+
+  // Standard-Gruppen initialisieren
   initDefaultGroups();
-});
+
+  // Modal initialisieren
+  initModal();
+
+  // AI Feed Panel schließen
+  const aiFeedClose = document.getElementById('ai-feed-close');
+  if (aiFeedClose) {
+    aiFeedClose.addEventListener('click', () => {
+      const aiFeedPanel = document.getElementById('ai-feed-panel');
+      if (aiFeedPanel) aiFeedPanel.classList.remove('active');
+    });
+  }
+}
+
+// =============================================
+// SEITE LADEN
+// =============================================
+// Warte, bis das DOM vollständig geladen ist
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
