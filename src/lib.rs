@@ -1,6 +1,7 @@
 pub mod db;
 pub mod error;
 pub mod models;
+pub mod request_json;
 pub mod routes;
 pub mod seed;
 pub mod state;
@@ -272,6 +273,11 @@ mod tests {
         assert!(body["paths"]["/api/chat/knowledge/nodes"].is_object());
         assert!(body["paths"]["/api/chat/knowledge/edges"].is_object());
         assert!(body["paths"]["/api/chat/knowledge/graph"].is_object());
+        assert!(body["paths"]["/api/chat/threads"]["post"]["responses"]["400"].is_object());
+        assert!(body["paths"]["/api/chat/wiki/{id}"]["put"]["responses"]["404"].is_object());
+        assert!(
+            body["paths"]["/api/chat/matrix/users/{userId}"]["get"]["responses"]["404"].is_object()
+        );
     }
 
     #[tokio::test]
@@ -295,6 +301,7 @@ mod tests {
         let (status, feed) = get_json("/api/chat/feed").await;
         assert_eq!(status, StatusCode::OK);
         assert!(feed["items"].as_array().unwrap().len() >= 3);
+        assert_eq!(feed["items"][0]["id"], "feed-3");
 
         let (status, graph) = get_json("/api/chat/knowledge/graph").await;
         assert_eq!(status, StatusCode::OK);
@@ -372,7 +379,7 @@ mod tests {
         assert_eq!(status, StatusCode::ACCEPTED);
         assert_eq!(
             rebuild,
-            json!({ "status": "queued", "groupId": "group-team-1" })
+            json!({ "status": "accepted_mock", "groupId": "group-team-1" })
         );
 
         let (status, nodes) = get_json("/api/chat/knowledge/nodes").await;
@@ -413,5 +420,138 @@ mod tests {
         .await;
         assert_eq!(status, StatusCode::CREATED);
         assert_eq!(created_edge["relation"], "references");
+    }
+
+    #[tokio::test]
+    async fn validation_rejects_invalid_matrix_and_graph_payloads() {
+        let (status, matrix_error) = request_json(
+            Method::POST,
+            "/api/chat/matrix/users/link",
+            Some(json!({
+                "userId": "user-david",
+                "matrixUserId": "david"
+            })),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        assert_eq!(matrix_error["error"]["code"], "bad_request");
+        assert_eq!(matrix_error["error"]["field"], "matrixUserId");
+
+        let (status, edge_error) = request_json(
+            Method::POST,
+            "/api/chat/knowledge/edges",
+            Some(json!({
+                "fromNodeId": "node-thread-architecture",
+                "toNodeId": "node-thread-architecture",
+                "relation": "references",
+                "confidence": 0.9,
+                "sourceType": "wiki_article",
+                "sourceId": "wiki-matrix-postgres"
+            })),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        assert_eq!(edge_error["error"]["code"], "bad_request");
+        assert_eq!(edge_error["error"]["field"], "toNodeId");
+
+        let (status, missing_node) = request_json(
+            Method::POST,
+            "/api/chat/knowledge/edges",
+            Some(json!({
+                "fromNodeId": "node-does-not-exist",
+                "toNodeId": "node-thread-architecture",
+                "relation": "references",
+                "confidence": 0.9,
+                "sourceType": "wiki_article",
+                "sourceId": "wiki-matrix-postgres"
+            })),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        assert_eq!(missing_node["error"]["field"], "fromNodeId");
+    }
+
+    #[tokio::test]
+    async fn validation_rejects_missing_required_json_fields() {
+        let (status, group_error) = request_json(
+            Method::POST,
+            "/api/chat/groups",
+            Some(json!({
+                "description": "Ohne Namen",
+                "createdByUserId": "user-david"
+            })),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        assert_eq!(group_error["error"]["code"], "bad_request");
+        assert_eq!(group_error["error"]["field"], "name");
+
+        let (status, edge_error) = request_json(
+            Method::POST,
+            "/api/chat/knowledge/edges",
+            Some(json!({
+                "fromNodeId": "node-thread-architecture",
+                "toNodeId": "node-wiki-matrix-postgres",
+                "relation": "references",
+                "sourceType": "wiki_article",
+                "sourceId": "wiki-matrix-postgres"
+            })),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        assert_eq!(edge_error["error"]["code"], "bad_request");
+        assert_eq!(edge_error["error"]["field"], "confidence");
+
+        let (status, room_error) = request_json(
+            Method::POST,
+            "/api/chat/matrix/rooms/link",
+            Some(json!({
+                "groupId": "group-team-1",
+                "matrixRoomId": "!team1:example.test"
+            })),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        assert_eq!(room_error["error"]["code"], "bad_request");
+        assert_eq!(room_error["error"]["field"], "isPrimary");
+    }
+
+    #[tokio::test]
+    async fn validation_rejects_unknown_agent_sources_and_missing_links() {
+        let (status, source_error) = request_json(
+            Method::POST,
+            "/api/chat/agent/analyze",
+            Some(json!({
+                "groupId": "group-team-1",
+                "sourceType": "thread",
+                "sourceId": "thread-does-not-exist",
+                "mode": "mock"
+            })),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        assert_eq!(source_error["error"]["code"], "bad_request");
+        assert_eq!(source_error["error"]["field"], "sourceId");
+
+        let (status, missing_matrix_link) = get_json("/api/chat/matrix/users/unknown").await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+        assert_eq!(missing_matrix_link["error"]["code"], "not_found");
+        assert_eq!(
+            missing_matrix_link["error"]["message"],
+            "Matrix-User-Link wurde nicht gefunden"
+        );
+
+        let (status, duplicate_matrix_user) = request_json(
+            Method::POST,
+            "/api/chat/matrix/users/link",
+            Some(json!({
+                "userId": "user-samira",
+                "matrixUserId": "@david:matrix.local"
+            })),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        assert_eq!(duplicate_matrix_user["error"]["code"], "bad_request");
+        assert_eq!(duplicate_matrix_user["error"]["field"], "matrixUserId");
     }
 }

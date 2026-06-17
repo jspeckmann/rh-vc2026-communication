@@ -191,8 +191,8 @@ export default function WikiSection({
         setForm(formFromArticle(article));
       }
       setLoadError(false);
-    } catch {
-      setSaveError('Wiki-Artikel konnte nicht gespeichert werden.');
+    } catch (error) {
+      setSaveError(error.message || 'Wiki-Artikel konnte nicht gespeichert werden.');
     } finally {
       setSaving(false);
     }
@@ -326,7 +326,7 @@ export default function WikiSection({
             </button>
             {saveError ? <span className="text-xs text-[var(--color-error)]">{saveError}</span> : null}
             {!selectedUserKnown ? (
-              <span className="text-xs text-[var(--color-error)]">Gueltigen User waehlen.</span>
+              <span className="text-xs text-[var(--color-error)]">Gültigen User wählen.</span>
             ) : null}
           </div>
         </form>
@@ -335,7 +335,7 @@ export default function WikiSection({
       <aside className="ui-panel min-h-0 overflow-y-auto p-4">
         <div className="mb-4 border-b border-[var(--color-gray)]/15 pb-3">
           <h2 className="text-sm font-semibold">Metadaten</h2>
-          <p className="mt-1 text-xs text-[var(--color-gray)]">Autor, Tags und Verknuepfungen</p>
+          <p className="mt-1 text-xs text-[var(--color-gray)]">Autor, Tags und Verknüpfungen</p>
         </div>
         <div className="space-y-4 text-sm">
           <section>
@@ -359,10 +359,10 @@ export default function WikiSection({
             </div>
           </section>
           <section>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-gray)]">Verknuepfungen</h3>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-gray)]">Verknüpfungen</h3>
             <div className="space-y-2">
               <div className="ui-card-row p-3 text-xs text-[var(--color-gray)]">Thema: Release Planung</div>
-              <div className="ui-card-row p-3 text-xs text-[var(--color-gray)]">Entscheidung: Matrix als Chat-Layer</div>
+              <div className="ui-card-row p-3 text-xs text-[var(--color-gray)]">Entscheidung: Chat-Layer bleibt getrennt vom Wissen</div>
             </div>
           </section>
         </div>

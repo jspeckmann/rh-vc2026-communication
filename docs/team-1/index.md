@@ -57,6 +57,8 @@ Struktur-Prototyp, aber kein eigenes produktives Frontend im Team-Repo.
 - `docs/team-1/ui-brief.md`: Test-UI-Brief.
 - `docs/team-1/design-guide.md`: Stylesheet-/Design-Vorgaben.
 - `docs/team-1/group-notes.md`: Team-1-Notizen.
+- `docs/team-1/handoff-current-status.md`: aktueller Uebergabe- und
+  Anbindungsstand.
 - `evals/team-1-kommunikation.json`: maschinenlesbare Eval-Struktur.
 - `styles/Stylesheet.css`: uebernommene Design-Grundlage.
 

@@ -57,7 +57,7 @@ export default function AddGroupModal({
         />
         {error ? <p className="mt-2 text-xs text-[var(--color-error)]">{error}</p> : null}
         {!canCreate ? (
-          <p className="mt-2 text-xs text-[var(--color-error)]">Erst einen gueltigen User laden.</p>
+          <p className="mt-2 text-xs text-[var(--color-error)]">Erst einen gültigen User laden.</p>
         ) : null}
       </div>
       <div className="flex justify-end gap-2">

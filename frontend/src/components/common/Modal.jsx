@@ -36,7 +36,7 @@ export default function Modal({ open, onClose, title, children }) {
           <button
             type="button"
             onClick={onClose}
-            aria-label={`${title} schliessen`}
+            aria-label={`${title} schließen`}
             className="cursor-pointer text-xl leading-none text-[var(--color-gray)] hover:text-[var(--color-fg)]"
           >
             &times;

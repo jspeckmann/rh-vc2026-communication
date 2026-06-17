@@ -22,17 +22,24 @@ Team 1 baut ein eigenes Modul fuer Kommunikation und Wissen:
 - Port: `8001`
 - Datenformat: REST ueber JSON
 - Inhalte: Gruppen, Diskussionen, Nachrichten, Wiki/Knowledge Base
-- Datenbank: PostgreSQL als Modul-Wahrheit; Matrix/Synapse als Chat-Layer
+- Datenbank: PostgreSQL als Modul-Wahrheit; Matrix/Synapse als Chat-Zielbild
+- Aktuell ehrlich belegt: Matrix-Link-Endpunkte und statische DB-/API-Pfade;
+  nicht frisch belegt: PostgreSQL-Runtime, Docker/Compose-Up, Synapse-Service,
+  Auth/401-Middleware und Matrix-503-Ausfallpfad
 - Agent: eigener Agent-Feed mit Daumen-hoch/-runter-Feedback
 - Pflicht: Healthcheck, API-Doku, Dockerfile, Traefik-Anbindung
 
 ## Lokaler Backend-Slice
+
+Soll lokal pruefbar sein ueber:
 
 - Rust/Axum-Service: `cargo run`
 - Healthcheck: `GET http://127.0.0.1:8001/health`
 - Gateway-kompatible API: `GET http://127.0.0.1:8001/api/chat/users`
 - Lokale Aliasroute: `GET http://127.0.0.1:8001/chat/users`
 - OpenAPI: `GET http://127.0.0.1:8001/openapi.json`
+
+Diese README behauptet keinen frischen Runtime-Readback.
 
 ## Aktuelle Struktur
 

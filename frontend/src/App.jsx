@@ -36,7 +36,6 @@ export default function App() {
   const [aiFeedOpen, setAIFeedOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [filter, setFilter] = useState('all');
-  const [recentItems, setRecentItems] = useLocalStorage('recentItems', []);
   const [selectedGroupId, setSelectedGroupId] = useLocalStorage('communicationSelectedGroupId', '');
   const [selectedUserId, setSelectedUserId] = useLocalStorage('communicationSelectedUserId', '');
   const [groups, setGroups] = useState([]);
@@ -96,26 +95,6 @@ export default function App() {
   }, [navigate]);
 
   useEffect(() => {
-    const label = sectionLabels[currentSection];
-    if (!label) return;
-    const iconMap = {
-      dashboard: 'dashboard',
-      groups: 'groups',
-      chat: 'chat',
-      wiki: 'wiki',
-      network: 'network',
-    };
-    setRecentItems((prev) => {
-      const exists = prev.some((item) => item.route === currentSection);
-      if (exists) return prev;
-      return [
-        ...prev,
-        { id: `${currentSection}-btn`, route: currentSection, label, icon: iconMap[currentSection] || '' },
-      ];
-    });
-  }, [currentSection, setRecentItems]);
-
-  useEffect(() => {
     const handleKey = (e) => {
       if (e.key === 'Escape') {
         setModalOpen(false);
@@ -138,8 +117,6 @@ export default function App() {
         groups={groups}
         setGroups={setGroups}
         groupsLoadError={groupsLoadError}
-        recentItems={recentItems}
-        setRecentItems={setRecentItems}
       />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -148,7 +125,16 @@ export default function App() {
         <div className="app-content flex-1 overflow-y-auto">
           <Routes>
             <Route path="/" element={<Navigate to="/chat" replace />} />
-            <Route path="/dashboard" element={<DashboardSection onNavigate={handleNavigate} />} />
+            <Route
+              path="/dashboard"
+              element={(
+                <DashboardSection
+                  onNavigate={handleNavigate}
+                  selectedGroupId={selectedGroupId}
+                  selectedGroupKnown={selectedGroupKnown}
+                />
+              )}
+            />
             <Route
               path="/groups"
               element={(

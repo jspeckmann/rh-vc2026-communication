@@ -346,7 +346,7 @@ export default function ChatSection({
                 </button>
               </div>
               {!selectedUserKnown ? (
-                <p className="text-xs text-[var(--color-error)]">Erst einen gueltigen User waehlen.</p>
+                <p className="text-xs text-[var(--color-error)]">Erst einen gültigen User wählen.</p>
               ) : null}
             </form>
           </>
@@ -356,7 +356,7 @@ export default function ChatSection({
       <section className="ui-panel flex min-h-0 flex-col overflow-hidden">
         <div className="border-b border-[var(--color-gray)]/15 px-4 py-3">
           <h2 className="text-sm font-semibold">
-            {selectedThread?.title ?? 'Kein Thread gewaehlt'}
+            {selectedThread?.title ?? 'Kein Thread gewählt'}
           </h2>
         </div>
 
@@ -434,7 +434,7 @@ export default function ChatSection({
       <aside className="ui-panel min-h-0 overflow-y-auto p-4">
         <div className="mb-4 border-b border-[var(--color-gray)]/15 pb-3">
           <h2 className="text-sm font-semibold">Kontext</h2>
-          <p className="mt-1 text-xs text-[var(--color-gray)]">Matrix-Raum, Gruppe und Agent-Hinweise</p>
+          <p className="mt-1 text-xs text-[var(--color-gray)]">Chat-Raum, Gruppe und Assistenzhinweise</p>
         </div>
         <div className="space-y-4">
           <section>
@@ -447,20 +447,22 @@ export default function ChatSection({
           <section>
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-gray)]">Status</h3>
             <div className="flex flex-wrap gap-2">
-              <span className="ui-chip"><span className="ui-status-dot" /> Matrix verbunden</span>
+              <span className="ui-chip">
+                <span className="ui-status-dot" /> {selectedGroup?.matrixRoomId ? 'Chat-Link konfiguriert' : 'Chat-Link fehlt'}
+              </span>
               <span className="ui-chip">{groupThreads.length} Threads</span>
               <span className="ui-chip">{messages.length} Nachrichten</span>
             </div>
           </section>
           <section>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-gray)]">AI-Hinweise</h3>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-gray)]">Assistenzhinweise</h3>
             <div className="space-y-2 text-sm">
               <article className="ui-card-row p-3">
                 <strong className="block">Zusammenfassung</strong>
-                <span className="mt-1 block text-xs text-[var(--color-gray)]">Offene Entscheidungen und hohe Prioritaeten zuerst pruefen.</span>
+                <span className="mt-1 block text-xs text-[var(--color-gray)]">Offene Entscheidungen und hohe Prioritäten zuerst prüfen.</span>
               </article>
               <article className="ui-card-row p-3">
-                <strong className="block">Prioritaet hoch</strong>
+                <strong className="block">Priorität hoch</strong>
                 <span className="mt-1 block text-xs text-[var(--color-gray)]">Nachrichten mit Favoriten-Filter im Fokus halten.</span>
               </article>
             </div>

@@ -11,7 +11,8 @@ services:
       LLM_PROVIDER: ${LLM_PROVIDER:-mock}
       LLM_API_KEY: ${LLM_API_KEY:-}
     depends_on:
-      - team1-postgres
+      team1-postgres:
+        condition: service_healthy
     networks:
       - cpp-edge
       - team1-internal
@@ -29,6 +30,11 @@ services:
       POSTGRES_DB: team1_kommunikation
     volumes:
       - team1-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U team1 -d team1_kommunikation"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
     networks:
       - team1-internal
 

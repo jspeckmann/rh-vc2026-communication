@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchDashboard, formatTime } from '../../services/api.js';
+import { fetchDashboard, formatTime, rebuildFeed } from '../../services/api.js';
 
 const emptyDashboard = {
   status: {},
@@ -10,29 +10,50 @@ const emptyDashboard = {
   knowledgeGraph: { nodeCount: 0, edgeCount: 0 },
 };
 
-export default function DashboardSection({ onNavigate }) {
+export default function DashboardSection({ onNavigate, selectedGroupId, selectedGroupKnown }) {
   const [dashboard, setDashboard] = useState(emptyDashboard);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [rebuilding, setRebuilding] = useState(false);
+  const [actionMessage, setActionMessage] = useState('');
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchDashboard()
+  const loadDashboard = (cancelledRef = { current: false }) => {
+    return fetchDashboard()
       .then((data) => {
-        if (cancelled) return;
+        if (cancelledRef.current) return;
         setDashboard({ ...emptyDashboard, ...data });
         setLoadError(false);
       })
       .catch(() => {
-        if (!cancelled) setLoadError(true);
+        if (!cancelledRef.current) setLoadError(true);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelledRef.current) setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    const cancelledRef = { current: false };
+    loadDashboard(cancelledRef);
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
     };
   }, []);
+
+  const handleRebuildFeed = async () => {
+    if (!selectedGroupKnown || !selectedGroupId) return;
+    setRebuilding(true);
+    setActionMessage('');
+    try {
+      await rebuildFeed({ groupId: selectedGroupId });
+      await loadDashboard();
+      setActionMessage('Feed-Rebuild wurde angenommen.');
+    } catch {
+      setActionMessage('Feed-Rebuild konnte nicht gestartet werden.');
+    } finally {
+      setRebuilding(false);
+    }
+  };
 
   const metrics = [
     { key: 'groups', label: 'Gruppen', value: dashboard.groups?.length ?? 0, route: 'groups' },
@@ -55,11 +76,23 @@ export default function DashboardSection({ onNavigate }) {
           <p className="mt-1 text-sm text-[var(--color-gray)]">Status, Gruppen, Feed und Wissensgraph auf einen Blick.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <span className="ui-chip"><span className="ui-status-dot" /> Matrix verbunden</span>
-          <span className="ui-chip">LLM Mock aktiv</span>
-          <span className="ui-chip">User-Dummy sichtbar</span>
+          <span className="ui-chip"><span className="ui-status-dot" /> Chat-Link: {formatStatusValue(dashboard.status?.matrix)}</span>
+          <span className="ui-chip">Assistenz: {formatStatusValue(dashboard.status?.llm)}</span>
+          <span className="ui-chip">User: {formatStatusValue(dashboard.status?.userAdapter)}</span>
+          <button
+            type="button"
+            onClick={handleRebuildFeed}
+            disabled={!selectedGroupKnown || rebuilding}
+            className="ui-button ui-button-secondary px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {rebuilding ? 'Feed...' : 'Feed neu bauen'}
+          </button>
         </div>
       </div>
+
+      {actionMessage ? (
+        <p className="text-sm text-[var(--color-gray)]">{actionMessage}</p>
+      ) : null}
 
       {loading ? (
         <p className="text-sm text-[var(--color-gray)]">Lade Dashboard...</p>
@@ -95,7 +128,7 @@ export default function DashboardSection({ onNavigate }) {
                 <span className="block text-xs uppercase tracking-wider text-[var(--color-gray)]">
                   {labelStatus(key)}
                 </span>
-                <strong className="text-sm">{value}</strong>
+                <strong className="text-sm">{formatStatusValue(value)}</strong>
               </div>
             ))}
           </div>
@@ -134,6 +167,18 @@ export default function DashboardSection({ onNavigate }) {
       </div>
     </div>
   );
+}
+
+function formatStatusValue(value) {
+  const labels = {
+    link_configured: 'konfiguriert',
+    not_configured: 'fehlt',
+    mock: 'aktiv',
+    dummy: 'verbunden',
+    ok: 'ok',
+    postgres: 'PostgreSQL',
+  };
+  return labels[value] ?? String(value ?? 'fehlt').replaceAll('_', ' ');
 }
 
 function HeaderLine({ title }) {
@@ -207,8 +252,8 @@ function labelStatus(key) {
   const labels = {
     api: 'API',
     database: 'DB',
-    matrix: 'Matrix',
-    llm: 'LLM',
+    matrix: 'Chat-Link',
+    llm: 'Assistenz',
     userAdapter: 'User',
   };
   return labels[key] ?? key;

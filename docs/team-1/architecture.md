@@ -10,8 +10,14 @@ organisieren, Diskussionen fuehren, Entscheidungen festhalten und Wissen in
 einem Wiki beziehungsweise einer Knowledge Base sammeln.
 
 Submit-Ziel ist ein laufendes Modul, nicht nur Architektur-Doku. Das Modul
-liefert eine eigene API, eine Datenbank, einen Matrix-Chat-Service, einen
-Knowledge Graph, ein einfaches Dashboard und einen LLM-basierten Agent-Layer.
+liefert im Zielbild eine eigene API, eine Datenbank, einen Matrix-Chat-Service,
+einen Knowledge Graph, ein einfaches Dashboard und einen LLM-basierten
+Agent-Layer.
+
+Aktueller Spur-D-Stand: Statisch sichtbar sind API-/OpenAPI-Codepfade,
+PostgreSQL-Migrationen, Mock-State und Matrix-Link-Endpunkte. Nicht frisch
+belegt sind echte PostgreSQL-Runtime, Docker/Compose-Up, Synapse-Service,
+Auth/401-Middleware, Matrix-503-Ausfallpfad und Browser-/HTTP-Readback.
 
 Alle wichtigen Fachwoerter werden in
 `docs/team-1/glossary.md` einfach erklaert. Wenn ein Begriff im
@@ -58,8 +64,9 @@ Empfohlener Stack fuer die Umsetzung:
   sich gut mit Migrationen pruefen lassen.
 - Datenbank: PostgreSQL, weil Gruppen, Wiki, Feed, Agent-Daten und Knowledge
   Graph sauber relational und mit JSONB-Erweiterungen modellierbar sind.
-- Chat: Matrix/Synapse als eigener Docker-Service. Matrix ist Pflicht fuer den
-  Submit, aber das Modul speichert zusaetzlich eigene Links und Feed-Daten.
+- Chat: Matrix/Synapse als Ziel-Service. Matrix ist Pflicht fuer einen
+  vollstaendigen Submit-`pass`, aber aktuell ist nur Matrix-Linking im Modul
+  belegt; echter Synapse-Start braucht Runtime-Evidence.
 - LLM: externer LLM-Provider per API-Key aus Umgebungsvariablen.
 - Userintegration: zuerst Dummy-Useradapter mit Mock-Daten; spaeter Austausch
   gegen den Endpoint des User-Moduls.
@@ -78,7 +85,9 @@ Einfache Empfehlung:
 - PostgreSQL nehmen, weil ihr eine echte Datenbank und spaeter agent-lesbare
   Daten wollt.
 - SQLx statt ORM-Magie nutzen, damit Schema und Queries nachvollziehbar bleiben.
-- Matrix/Synapse nehmen, aber als Chat-Service neben dem eigenen Modul.
+- Matrix/Synapse als Chat-Service neben dem eigenen Modul einplanen; bis zum
+  echten Synapse-Readback Matrix-Link-Endpunkte nicht als Synapse-Service
+  ausgeben.
 - LLM zuerst mit Mock/Fallback bauen, damit Tests auch ohne echten API-Key
   funktionieren.
 - Bei Matrix, Traefik, Docker Compose, Datenbankschema und Authentik jemanden
@@ -115,7 +124,7 @@ Gehort nicht rein:
 ## Architektur
 
 ```text
-/chat Modul
+/chat Modul Zielbild
 ├─ Rust/Axum API
 │  ├─ Groups
 │  ├─ Matrix Links
@@ -139,7 +148,7 @@ Gehort nicht rein:
 │  ├─ matrix_user_links
 │  ├─ matrix_room_links
 │  └─ matrix_event_links
-├─ Matrix/Synapse
+├─ Matrix/Synapse (Submit-Gate, aktuell nicht frisch belegt)
 │  ├─ Chat-User
 │  ├─ Raeume
 │  └─ Events
@@ -363,7 +372,8 @@ liefert Team 1:
 - Datenmodell fuer Gruppen, Matrix-Links, Diskussionen, Nachrichten, Wiki,
   Feed, Agent-Feed, Agent-Feedback und Knowledge Graph
 - Dockerfile und Compose-Service-Snippet mit Traefik-Labels
-- Matrix/Synapse als eigener Docker-Service
+- Matrix-Link-Endpunkte aktuell; Matrix/Synapse als eigener Docker-Service erst
+  bei frischem Compose-/Runtime-Readback als umgesetzt markieren
 - PostgreSQL als eigener DB-Service
 - LLM-Konfiguration per ENV, ohne Secrets im Repo
 - Dummy-Useradapter, der spaeter gegen das User-Modul getauscht wird
@@ -378,8 +388,8 @@ Das Modul ist submitbereit, wenn:
 3. API-Endpunkte mit JSON-Vertrag beschrieben sind.
 4. Healthcheck, Dockerfile und Route/Port-Konvention umgesetzt sind.
 5. PostgreSQL laeuft mit initialem Schema.
-6. Matrix/Synapse laeuft als eigener Docker-Service und ist mit Gruppen/Usern
-   verlinkbar.
+6. Matrix/Synapse laeuft als eigener Docker-Service, ist frisch belegt und mit
+   Gruppen/Usern verlinkbar.
 7. Knowledge Graph ist per API und Dashboard-Daten abrufbar.
 8. LLM-Agent laeuft per ENV-Konfiguration und erzeugt Agent-Feed-Elemente mit
    Daumen-hoch/-runter-Feedback.

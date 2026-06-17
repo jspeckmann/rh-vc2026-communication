@@ -504,7 +504,7 @@ export default function NetworkSection({ selectedGroupId, selectedGroupKnown }) 
             <RelationList node={visibleSelectedNode} links={graph.links} nodes={graph.nodes} />
           </div>
         ) : (
-          <p className="text-sm text-[var(--color-gray)]">Kein Knoten gewaehlt.</p>
+          <p className="text-sm text-[var(--color-gray)]">Kein Knoten gewählt.</p>
         )}
       </aside>
     </div>

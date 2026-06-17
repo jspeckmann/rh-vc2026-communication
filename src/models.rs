@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use utoipa::ToSchema;
 
+use crate::request_json::RequiredJsonFields;
+
 #[derive(Serialize, ToSchema)]
 pub struct HealthResponse {
     pub status: String,
@@ -79,6 +81,10 @@ pub struct CreateGroupRequest {
     pub created_by_user_id: String,
 }
 
+impl RequiredJsonFields for CreateGroupRequest {
+    const REQUIRED_FIELDS: &'static [&'static str] = &["name", "description", "createdByUserId"];
+}
+
 #[derive(Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct GroupDetails {
@@ -121,6 +127,10 @@ pub struct AddGroupMemberRequest {
     pub member_role: String,
 }
 
+impl RequiredJsonFields for AddGroupMemberRequest {
+    const REQUIRED_FIELDS: &'static [&'static str] = &["userId", "memberRole"];
+}
+
 #[derive(Clone, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ThreadItem {
@@ -149,6 +159,10 @@ pub struct CreateThreadRequest {
     pub created_by: String,
 }
 
+impl RequiredJsonFields for CreateThreadRequest {
+    const REQUIRED_FIELDS: &'static [&'static str] = &["groupId", "title", "type", "createdBy"];
+}
+
 #[derive(Clone, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Message {
@@ -173,6 +187,10 @@ pub struct MessageListResponse {
 pub struct CreateMessageRequest {
     pub author_id: String,
     pub body: String,
+}
+
+impl RequiredJsonFields for CreateMessageRequest {
+    const REQUIRED_FIELDS: &'static [&'static str] = &["authorId", "body"];
 }
 
 #[derive(Clone, Serialize, ToSchema)]
@@ -226,6 +244,12 @@ pub struct CreateWikiArticleRequest {
     pub body: String,
     pub tags: Vec<String>,
     pub author_id: String,
+    pub status: Option<String>,
+}
+
+impl RequiredJsonFields for CreateWikiArticleRequest {
+    const REQUIRED_FIELDS: &'static [&'static str] =
+        &["groupId", "title", "body", "tags", "authorId"];
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -234,6 +258,11 @@ pub struct UpdateWikiArticleRequest {
     pub title: String,
     pub body: String,
     pub tags: Vec<String>,
+    pub status: Option<String>,
+}
+
+impl RequiredJsonFields for UpdateWikiArticleRequest {
+    const REQUIRED_FIELDS: &'static [&'static str] = &["title", "body", "tags"];
 }
 
 #[derive(Serialize, ToSchema)]
@@ -242,6 +271,7 @@ pub struct UpdateWikiArticleResponse {
     pub id: String,
     pub title: String,
     pub tags: Vec<String>,
+    pub status: String,
     pub updated_at: String,
 }
 
@@ -267,6 +297,10 @@ pub struct FeedListResponse {
 #[serde(rename_all = "camelCase")]
 pub struct FeedRebuildRequest {
     pub group_id: String,
+}
+
+impl RequiredJsonFields for FeedRebuildRequest {
+    const REQUIRED_FIELDS: &'static [&'static str] = &["groupId"];
 }
 
 #[derive(Serialize, ToSchema)]
@@ -316,6 +350,11 @@ pub struct CreateKnowledgeNodeRequest {
     pub source_id: String,
 }
 
+impl RequiredJsonFields for CreateKnowledgeNodeRequest {
+    const REQUIRED_FIELDS: &'static [&'static str] =
+        &["type", "title", "summary", "sourceType", "sourceId"];
+}
+
 #[derive(Serialize, ToSchema)]
 pub struct KnowledgeEdgeListResponse {
     pub edges: Vec<KnowledgeEdge>,
@@ -332,6 +371,17 @@ pub struct CreateKnowledgeEdgeRequest {
     pub source_id: String,
 }
 
+impl RequiredJsonFields for CreateKnowledgeEdgeRequest {
+    const REQUIRED_FIELDS: &'static [&'static str] = &[
+        "fromNodeId",
+        "toNodeId",
+        "relation",
+        "confidence",
+        "sourceType",
+        "sourceId",
+    ];
+}
+
 #[derive(Serialize, ToSchema)]
 pub struct KnowledgeGraphResponse {
     pub nodes: Vec<KnowledgeNode>,
@@ -345,6 +395,10 @@ pub struct AgentAnalyzeRequest {
     pub source_type: String,
     pub source_id: String,
     pub mode: Option<String>,
+}
+
+impl RequiredJsonFields for AgentAnalyzeRequest {
+    const REQUIRED_FIELDS: &'static [&'static str] = &["groupId", "sourceType", "sourceId"];
 }
 
 #[derive(Serialize, ToSchema)]
@@ -429,6 +483,10 @@ pub struct CreateAgentFeedbackRequest {
     pub reason: Option<String>,
 }
 
+impl RequiredJsonFields for CreateAgentFeedbackRequest {
+    const REQUIRED_FIELDS: &'static [&'static str] = &["userId", "value"];
+}
+
 #[derive(Clone, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct MatrixUserLink {
@@ -444,6 +502,10 @@ pub struct MatrixUserLink {
 pub struct MatrixUserLinkRequest {
     pub user_id: String,
     pub matrix_user_id: String,
+}
+
+impl RequiredJsonFields for MatrixUserLinkRequest {
+    const REQUIRED_FIELDS: &'static [&'static str] = &["userId", "matrixUserId"];
 }
 
 #[derive(Clone, Serialize, ToSchema)]
@@ -467,9 +529,24 @@ pub struct MatrixRoomLinkRequest {
     pub is_primary: bool,
 }
 
+impl RequiredJsonFields for MatrixRoomLinkRequest {
+    const REQUIRED_FIELDS: &'static [&'static str] = &["groupId", "matrixRoomId", "isPrimary"];
+}
+
 #[derive(Serialize, ToSchema)]
 pub struct MatrixRoomListResponse {
     pub rooms: Vec<MatrixRoomLink>,
+}
+
+#[derive(Clone, Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct MatrixEventLink {
+    pub id: String,
+    pub matrix_room_link_id: String,
+    pub matrix_event_id: String,
+    pub source_type: String,
+    pub source_id: String,
+    pub created_at: String,
 }
 
 #[derive(Serialize, ToSchema)]

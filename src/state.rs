@@ -6,8 +6,8 @@ use crate::{
     error::AppError,
     models::{
         AgentFeedItem, AgentFeedSummary, AgentFeedback, AgentFeedbackCounts, FeedItem, Group,
-        GroupMember, KnowledgeEdge, KnowledgeNode, MatrixRoomLink, MatrixUserLink, Message,
-        ThreadItem, UserRef, WikiArticle,
+        GroupMember, KnowledgeEdge, KnowledgeNode, MatrixEventLink, MatrixRoomLink, MatrixUserLink,
+        Message, ThreadItem, UserRef, WikiArticle,
     },
     seed,
 };
@@ -75,6 +75,7 @@ pub struct MockStore {
     pub agent_feedback: Vec<AgentFeedback>,
     pub matrix_user_links: Vec<MatrixUserLink>,
     pub matrix_room_links: Vec<MatrixRoomLink>,
+    pub matrix_event_links: Vec<MatrixEventLink>,
     next_sequence: usize,
 }
 
@@ -94,6 +95,7 @@ impl MockStore {
         agent_feedback: Vec<AgentFeedback>,
         matrix_user_links: Vec<MatrixUserLink>,
         matrix_room_links: Vec<MatrixRoomLink>,
+        matrix_event_links: Vec<MatrixEventLink>,
     ) -> Self {
         Self {
             users,
@@ -109,6 +111,7 @@ impl MockStore {
             agent_feedback,
             matrix_user_links,
             matrix_room_links,
+            matrix_event_links,
             next_sequence: 100,
         }
     }
@@ -135,6 +138,24 @@ impl MockStore {
                 })
                 .count(),
         }
+    }
+
+    pub fn primary_matrix_room_id(&self, group_id: &str) -> Option<String> {
+        self.matrix_room_links
+            .iter()
+            .find(|room| room.group_id == group_id && room.is_primary)
+            .map(|room| room.matrix_room_id.clone())
+    }
+
+    pub fn groups_with_primary_matrix_rooms(&self) -> Vec<Group> {
+        self.groups
+            .iter()
+            .cloned()
+            .map(|mut group| {
+                group.matrix_room_id = self.primary_matrix_room_id(&group.id);
+                group
+            })
+            .collect()
     }
 
     pub fn agent_summary(&self, item: &AgentFeedItem) -> AgentFeedSummary {

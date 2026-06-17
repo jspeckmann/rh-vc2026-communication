@@ -29,8 +29,38 @@ externe Abhaengigkeit markiert ist.
 Jeder `pass` braucht Beleg:
 
 - Datei/Abschnitt fuer Doku-Checks
-- Kommando/API-Readback fuer Runtime-Checks
+- frisch ausgefuehrtes Kommando/API-Readback fuer Runtime-Checks
 - Owner, Frage, Fallback und Blocker-Status fuer externe Abhaengigkeiten
+
+Aktueller Stand:
+
+- Spur D hatte frisch `jq empty evals/team-1-kommunikation.json`
+  ausgefuehrt.
+- Der Hauptagent hat danach frisch `cargo fmt --check`,
+  `cargo check --locked`, `cargo test --locked`,
+  `npm --prefix frontend run lint`, `npm --prefix frontend run build`,
+  `npm run check`, `jq empty evals/team-1-kommunikation.json` und
+  `git diff --check` ausgefuehrt.
+- Lokaler HTTP-Readback gegen den frisch gestarteten Backend-Prozess:
+  `/health` und `/api/chat/dashboard`.
+- In-App-Browser-Readback gegen `http://127.0.0.1:5174`:
+  Dashboard geladen, Feed-Rebuild bestaetigt, Gruppenansicht mit
+  Chat-User/Chat-Raeumen geladen, keine Console-Warnungen und keine sichtbaren
+  Matrix-/Mock-/Dummy-/Recent-Reste in den geprueften Views.
+- Server-Readback auf `david@192.168.2.250` lief nur nicht-destruktiv in einer
+  `/tmp`-Kopie: `docker compose config --quiet` ist gruen, Server-`cargo` fehlt,
+  `docker compose build` scheitert weiter am crates.io-DNS/getaddrinfo.
+- Docker/PostgreSQL-Runtime, Synapse und vollstaendige Browser-Readbacks aller
+  Create-/Update-Schreibflows bleiben ohne neue erfolgreiche Evidence.
+
+Aktueller Bewertungsstand:
+
+- `pass`: `COMM-DOC-001`, `COMM-CONTRACT-001`
+- `partial`: `COMM-DATA-001`, `COMM-SEED-001`, `COMM-RUN-001`,
+  `COMM-MATRIX-001`, `COMM-KG-001`, `COMM-AGENT-001`, `COMM-USER-001`,
+  `COMM-DEP-001`, `COMM-SUBMIT-001`
+- Harte offene Gates fuer Submit-`pass`: PostgreSQL-/Docker-Runtime,
+  Synapse-Service, Gateway/Auth/JWT, 401-Middleware, Matrix-503-Runtime-Pfad
 
 ## COMM-DOC-001: Projektkontext Und Modulgrenze
 
@@ -66,7 +96,11 @@ Andere Teams koennen das Modul ueber REST/JSON anbinden.
 Pass wenn:
 
 - `API.md` beschreibt Endpunkte, Request-/Response-Beispiele und Fehlerformat.
-- `400`, `401`, `404` und Matrix-`503` sind beschrieben.
+- `400` und `404` sind als Kern-Fehlerformat beschrieben.
+- `401` ist klar als geplanter Authentik/JWT-Fehler markiert, bis Team 3/5
+  echte Felder und Middleware liefert.
+- Matrix-`503` ist klar als geplanter Synapse-Ausfallpfad markiert, bis ein
+  echter Synapse-Service angebunden und reproduzierbar getestet ist.
 - Submit-Minimum ist klar markiert.
 
 Partial wenn:
@@ -94,8 +128,8 @@ Pass wenn:
 
 Partial wenn:
 
-- Tabellen dokumentiert sind, aber noch keine reproduzierbare Init-Strategie
-  existiert.
+- Tabellen dokumentiert oder statisch implementiert sind, aber kein frischer
+  PostgreSQL-/SQLx-Runtime-Readback existiert.
 
 Fail wenn:
 
@@ -118,7 +152,8 @@ Pass wenn:
 
 Partial wenn:
 
-- Seed-Daten beschrieben, aber nicht automatisiert angelegt sind.
+- Seed-Daten beschrieben oder statisch vorhanden sind, aber nicht frisch gegen
+  eine laufende Runtime gelesen wurden.
 
 Fail wenn:
 
@@ -141,7 +176,8 @@ Pass wenn:
 
 Partial wenn:
 
-- nur Doku existiert, aber noch kein lokaler API-Readback.
+- Doku oder statische Route existiert, aber kein frischer lokaler
+  API-Readback.
 
 Fail wenn:
 
@@ -155,14 +191,16 @@ Matrix ist Chat-Layer und per API mit Usern/Gruppen verlinkbar.
 
 Pass wenn:
 
-- Synapse ist als eigener Service vorhanden oder lokal pruefbar.
+- Synapse ist als eigener Service vorhanden und lokal oder per Compose
+  reproduzierbar pruefbar.
 - User koennen mit Matrix-Usern verlinkt werden.
 - Gruppen koennen mit Matrix-Raeumen verlinkt werden.
-- Matrix-Ausfall liefert klares Fehlerverhalten.
+- Matrix-Ausfall liefert reproduzierbar `503 matrix_unavailable`.
 
 Partial wenn:
 
-- Link-API und Compose-Plan existieren, aber echter Synapse-Readback fehlt.
+- Matrix-Link-Endpunkte existieren, aber echter Synapse-Readback oder
+  503-Ausfallpfad fehlt.
 
 Fail wenn:
 
@@ -185,7 +223,8 @@ Pass wenn:
 
 Partial wenn:
 
-- Graph-Struktur existiert, aber Dashboard oder Seed-Daten fehlen.
+- Graph-Struktur, Dashboard-Code oder Seed-Daten statisch vorhanden sind, aber
+  kein frischer Runtime-Readback existiert.
 
 Fail wenn:
 
@@ -207,7 +246,8 @@ Pass wenn:
 
 Partial wenn:
 
-- Agent-Feed dokumentiert ist, aber noch kein Mock/Fallback laeuft.
+- Agent-Feed dokumentiert oder statisch implementiert ist, aber kein frischer
+  Mock/Fallback-Readback laeuft.
 
 Fail wenn:
 
@@ -228,7 +268,8 @@ Pass wenn:
 
 Partial wenn:
 
-- Dummy-Daten dokumentiert, aber noch nicht per API erreichbar sind.
+- Dummy-Daten dokumentiert oder statisch implementiert sind, aber kein frischer
+  API-Readback existiert.
 
 Fail wenn:
 
@@ -249,17 +290,35 @@ Pass wenn jede offene Abhaengigkeit hat:
 
 Aktuelle Abhaengigkeiten:
 
-- Team intern/Backend: Docker-/PostgreSQL-Runtime-Readback
-- Team 3/5: JWT-Felder, Issuer, Rollen, Admin-Rechte
-- Team 5: echter User-Endpunkt und stabile User-ID
-- Team 3: Gateway, Traefik, `modules.json`, OpenAPI-Anforderung
-- Team 3/DevOps: Synapse-Startstrategie
-- Team 4: spaeterer Import von Agent-Task-Listen
-- Team intern: LLM-Provider und ENV-Namen
+- Owner Team 1/Backend: Docker-/PostgreSQL-Runtime-Readback.
+  Frage: Wann laufen Compose, Schema, Seed und SQLx-Pfade wirklich?
+  Fallback: Mock-State ohne `DATABASE_URL`. Blocker: ja fuer Submit-`pass`.
+- Owner Team 3/5: JWT-Felder, Issuer, Rollen, Admin-Rechte.
+  Frage: Welche Claims und Rollen gelten?
+  Fallback: lokal Auth-Off/Mock dokumentieren. Blocker: ja fuer echten
+  401-`pass`.
+- Owner Team 5: echter User-Endpunkt und stabile User-ID.
+  Frage: Welcher Endpoint und welches ID-Feld?
+  Fallback: Dummy-Useradapter. Blocker: nein, solange Dummy-Adapter klar ist.
+- Owner Team 3: Gateway, Traefik, `modules.json`, OpenAPI-Anforderung.
+  Frage: Wie wird `/api/chat` registriert und muss `/openapi.json` live sein?
+  Fallback: `API.md` plus Compose-/Traefik-Snippet. Blocker: ja fuer
+  Deployment-/Submit-`pass`.
+- Owner Team 3/DevOps: Synapse-Startstrategie.
+  Frage: Wie wird Synapse gestartet und vom Modul erreicht?
+  Fallback: Matrix-Link-API mit Dummy-Rooms. Blocker: ja fuer
+  `COMM-MATRIX-001`-`pass`.
+- Owner Team 4: spaeterer Import von Agent-Task-Listen.
+  Frage: Soll Team 4 Agent-Task-Listen uebernehmen?
+  Fallback: Agent-Task-Listen bleiben im Kommunikationsmodul. Blocker: nein.
+- Owner Team 1: LLM-Provider und ENV-Namen.
+  Frage: Welcher Provider und welche Variablen?
+  Fallback: Mock-Modus und Platzhalter. Blocker: nein.
 
 Partial wenn:
 
-- Abhaengigkeiten benannt, aber Owner/Fallback fehlen.
+- Abhaengigkeiten benannt sind, aber noch nicht beantwortet oder echte Gates
+  noch nicht frisch belegt sind.
 
 Fail wenn:
 
@@ -274,16 +333,17 @@ Das Modul ist abgabefaehig, nicht nur geplant.
 Pass wenn:
 
 - Healthcheck, API-Vertrag, DB, Seeds, Dummy-User, Matrix-Linking,
-  Knowledge Graph, Agent-Feed, Dashboard und Docker/Gateway-Plan sind gruen.
-- Runtime-Punkte haben echte lokale Belege oder klar markierte externe
-  Fallbacks.
+  Knowledge Graph, Agent-Feed, Dashboard, Docker/Gateway und Synapse sind mit
+  frischen Runtime-Checks belegbar gruen.
+- Runtime-Punkte haben echte lokale Belege; externe Fallbacks reichen nur fuer
+  `partial`, nicht fuer `pass`.
 - Keine Secrets oder Runtime-Dateien sind im Repo.
 
 Partial wenn:
 
-- lokale Mock-Laufbarkeit steht, aber Docker/PostgreSQL-Runtime,
-  Synapse/Gateway/Auth, echtes Usermodul oder Team-4-Import noch externe
-  Gegenchecks brauchen.
+- Doku und statische Codepfade fuer lokale Mock-Laufbarkeit stehen, aber
+  Docker/PostgreSQL-Runtime, Synapse/Gateway/Auth, echtes Usermodul oder
+  Team-4-Import noch externe Gegenchecks brauchen.
 
 Fail wenn:
 

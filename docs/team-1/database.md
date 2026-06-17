@@ -4,8 +4,13 @@ Stand: 2026-06-17
 
 ## Kurzentscheidung
 
-Team 1 nutzt PostgreSQL als eigene Modul-Datenbank. Matrix/Synapse ist Pflicht
-fuer Chat, aber nicht die alleinige Datenwahrheit.
+Team 1 nutzt PostgreSQL als eigene Modul-Datenbank. Matrix/Synapse ist im
+Chat-Zielzustand Pflicht, aber nicht die alleinige Datenwahrheit.
+
+Aktueller Spur-D-Stand: Migrationen, Seed-Dateien und SQLx-Codepfade sind
+statisch vorhanden. Nicht frisch belegt sind PostgreSQL-Runtime,
+Docker/Compose-Up und ein echter Synapse-Service. Matrix-Link-Endpunkte duerfen
+daher als implementiert gelten; Synapse-Service nicht.
 
 Entscheidung:
 
@@ -379,9 +384,11 @@ Vor Submit muss wirklich laufen:
 - Seed-Daten sind vorhanden.
 - API kann Gruppen, Wiki, Feed, Knowledge Graph und Agent-Feed aus PostgreSQL
   lesen.
-- Matrix/Synapse laeuft als eigener Docker-Service oder ist im Compose klar
-  enthalten und verlinkbar.
+- Matrix/Synapse laeuft als eigener Docker-Service und ist frisch belegt;
+  ein Compose-Plan allein bleibt `partial`.
 - User-Link und Room-Link funktionieren ueber API.
+- Matrix-Ausfall liefert reproduzierbar `503 matrix_unavailable`, sobald ein
+  echter Synapse-Pfad angebunden ist.
 - Agent-Feed kann mit echtem LLM-Key oder Mock/Fallback erzeugt werden.
 - Daumen hoch/runter Feedback wird gespeichert.
 - `GET /api/chat/knowledge/graph` liefert Nodes und Edges.
@@ -396,25 +403,41 @@ Darf als vorbereitete Integration dokumentiert sein:
 - komplexer Matrix-Vollsync
 - komplexe Volltextsuche
 
+Darf nicht als `pass` behauptet werden, solange frischer Beleg fehlt:
+
+- Docker-/PostgreSQL-Runtime
+- Synapse-Service
+- Auth/401-Middleware
+- Matrix-503-Runtime-Pfad
+- Gateway-/Traefik-Deployment
+
 ## Offene Fragen Fuer Gegencheck
 
 Diese Fragen sind nicht mehr blockierend fuer die Architektur, sollten aber vor
 Submit mit Backend/DevOps beziehungsweise den anderen Teams gegengeprueft
-werden:
+werden. `Blocker` meint: blockiert Submit-`pass`, nicht die lokale
+Weiterarbeit.
 
-- Nutzt das finale Repo SQLx-Migrationen oder direkt `schema.sql`/`seed.sql`?
-- Wird Synapse lokal mit echter Registrierung gestartet oder mit vorbereiteten
-  Demo-Usern/Raeumen?
-- Legt unser Modul Matrix-Raeume selbst an oder verlinkt es nur bereits
-  vorhandene Raeume?
-- Wie heisst der echte User-Endpunkt von Team 5, und welches Feld ist die
-  stabile User-ID?
-- Welche JWT-Felder liefern Team 3/5 fuer `userId`, Rollen und Admin-Rechte?
-- Soll Team 4 spaeter Agent-Task-Listen importieren, oder bleiben sie nur im
-  Kommunikationsmodul sichtbar?
-- Welche LLM-ENV-Namen will das Team einheitlich nutzen?
-- Reicht `API.md` fuer Submit, oder muss `/openapi.json` zwingend erreichbar
-  sein?
+- Owner Team 1/Backend: SQLx-Migrationen oder `schema.sql`/`seed.sql`?
+  Fallback: idempotente SQLx-Migrationen plus Seed. Blocker: ja fuer
+  PostgreSQL-Runtime-`pass`.
+- Owner Team 3/DevOps: Wird Synapse lokal mit echter Registrierung gestartet
+  oder mit vorbereiteten Demo-Usern/Raeumen? Fallback: Matrix-Link-API mit
+  Dummy-Rooms. Blocker: ja fuer Synapse-`pass`.
+- Owner Team 1/Backend: Legt unser Modul Matrix-Raeume selbst an oder verlinkt
+  es vorhandene Raeume? Fallback: vorhandene/Dummy-Raeume verlinken. Blocker:
+  nein fuer Link-API, ja fuer echten Synapse-Service.
+- Owner Team 5: Wie heisst der echte User-Endpunkt, und welches Feld ist die
+  stabile User-ID? Fallback: Dummy-Useradapter. Blocker: nein.
+- Owner Team 3/5: Welche JWT-Felder liefern Team 3/5 fuer `userId`, Rollen und
+  Admin-Rechte? Fallback: Auth-Off/Mock lokal. Blocker: ja fuer 401-`pass`.
+- Owner Team 4: Soll Team 4 spaeter Agent-Task-Listen importieren? Fallback:
+  Agent-Task-Listen bleiben im Kommunikationsmodul. Blocker: nein.
+- Owner Team 1: Welche LLM-ENV-Namen will das Team einheitlich nutzen?
+  Fallback: `LLM_MOCK_MODE=true` und Platzhalter. Blocker: nein.
+- Owner Team 3: Reicht `API.md` fuer Submit, oder muss `/openapi.json`
+  zwingend erreichbar sein? Fallback: `API.md`. Blocker: ja, falls Team 3
+  Live-OpenAPI verlangt.
 
 ## Risiken
 

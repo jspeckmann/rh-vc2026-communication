@@ -6,6 +6,10 @@ Stand: 2026-06-17
 
 Erst Vertrag und Datenmodell stabil machen, dann lokal/mockbar bauen, danach
 Matrix und externe Team-Abhaengigkeiten anschliessen, zuletzt Submit pruefen.
+Statuswahrheit: Ein Phasen-Gate ist erst `pass`, wenn es frisch ausgefuehrt
+oder als Doku-/Codepfad statisch belegt ist. Nicht frisch belegt sind aktuell
+PostgreSQL-Runtime, Docker/Compose-Up, Synapse-Service, Auth/401-Middleware und
+Matrix-503-Ausfall.
 
 Die konkrete parallele Ausfuehrung steht in
 `docs/team-1/implementation-plan.md`. Diese Roadmap bleibt die Phasen- und
@@ -139,7 +143,9 @@ Implementieren ohne Nachfrage:
 - Threads und `messages_cache`
 - Wiki
 - Feed
-- `400`, `401`, `404` Fehlerformat
+- `400` und `404` Fehlerformat
+- `401` nur als geplanter Authentik/JWT-Fehler dokumentieren, bis Team 3/5
+  Claims und Middleware geklaert sind
 
 Fragen/Gegencheck:
 
@@ -164,7 +170,8 @@ Implementieren ohne Nachfrage:
 - `matrix_room_links`
 - `matrix_event_links`
 - Matrix-Link-Endpunkte
-- Matrix-Ausfall als `503`
+- Matrix-`503` als Fehlerformat/Plan markieren; echter 503-Pfad erst mit
+  Synapse-Client oder Synapse-Healthcheck als `pass`
 
 Fragen/Gegencheck:
 
@@ -175,6 +182,8 @@ Fragen/Gegencheck:
 Gate:
 
 - User und Gruppen koennen mit Matrix-Usern/Raeumen verlinkt werden.
+- Fuer `pass`: Synapse-Service ist frisch gestartet oder erreichbar und
+  Matrix-Ausfall liefert reproduzierbar `503 matrix_unavailable`.
 - Matrix bleibt Chat-Layer; PostgreSQL bleibt Modul-Wahrheit.
 
 Stop:
@@ -267,7 +276,8 @@ Ziel: Abgabefaehiges Modul.
 Implementieren ohne Nachfrage:
 
 - `Dockerfile`
-- Compose-Services fuer API, PostgreSQL, Synapse
+- Compose-Services fuer API und PostgreSQL; Synapse-Service erst als umgesetzt
+  markieren, wenn Compose/Runtime belegt ist
 - Traefik-Labels fuer `/api/chat` und Port `8001`
 - `.env.example`
 - Eval-Readback

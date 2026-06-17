@@ -194,6 +194,118 @@ pub async fn get_user(pool: &PgPool, user_id: &str) -> Result<UserRef, sqlx::Err
         .map(user_from_row)
 }
 
+pub async fn user_exists(pool: &PgPool, user_id: &str) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users_cache WHERE id = $1)")
+        .bind(user_id)
+        .fetch_one(pool)
+        .await
+}
+
+pub async fn group_exists_bool(pool: &PgPool, group_id: &str) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM groups WHERE id = $1)")
+        .bind(group_id)
+        .fetch_one(pool)
+        .await
+}
+
+pub async fn thread_exists(pool: &PgPool, thread_id: &str) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM threads WHERE id = $1)")
+        .bind(thread_id)
+        .fetch_one(pool)
+        .await
+}
+
+pub async fn wiki_article_exists(pool: &PgPool, article_id: &str) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM wiki_articles WHERE id = $1)")
+        .bind(article_id)
+        .fetch_one(pool)
+        .await
+}
+
+pub async fn knowledge_node_exists(pool: &PgPool, node_id: &str) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM knowledge_nodes WHERE id = $1)")
+        .bind(node_id)
+        .fetch_one(pool)
+        .await
+}
+
+pub async fn feed_item_in_group_exists(
+    pool: &PgPool,
+    item_id: &str,
+    group_id: &str,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM feed_items WHERE id = $1 AND group_id = $2)")
+        .bind(item_id)
+        .bind(group_id)
+        .fetch_one(pool)
+        .await
+}
+
+pub async fn agent_feed_item_in_group_exists(
+    pool: &PgPool,
+    item_id: &str,
+    group_id: &str,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM agent_feed_items WHERE id = $1 AND group_id = $2)",
+    )
+    .bind(item_id)
+    .bind(group_id)
+    .fetch_one(pool)
+    .await
+}
+
+pub async fn agent_feed_item_exists(pool: &PgPool, item_id: &str) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM agent_feed_items WHERE id = $1)")
+        .bind(item_id)
+        .fetch_one(pool)
+        .await
+}
+
+pub async fn matrix_user_id_used_by_other_user(
+    pool: &PgPool,
+    user_id: &str,
+    matrix_user_id: &str,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar(
+        r#"
+        SELECT EXISTS(
+            SELECT 1
+            FROM matrix_user_links
+            WHERE matrix_user_id = $1 AND user_id <> $2
+        )
+        "#,
+    )
+    .bind(matrix_user_id)
+    .bind(user_id)
+    .fetch_one(pool)
+    .await
+}
+
+pub async fn thread_in_group_exists(
+    pool: &PgPool,
+    thread_id: &str,
+    group_id: &str,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM threads WHERE id = $1 AND group_id = $2)")
+        .bind(thread_id)
+        .bind(group_id)
+        .fetch_one(pool)
+        .await
+}
+
+pub async fn wiki_article_in_group_exists(
+    pool: &PgPool,
+    article_id: &str,
+    group_id: &str,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM wiki_articles WHERE id = $1 AND group_id = $2)")
+        .bind(article_id)
+        .bind(group_id)
+        .fetch_one(pool)
+        .await
+}
+
 async fn member_ids(pool: &PgPool, group_id: &str) -> Result<Vec<String>, sqlx::Error> {
     let rows = sqlx::query(
         "SELECT user_id FROM group_members WHERE group_id = $1 ORDER BY joined_at, user_id",
@@ -415,22 +527,46 @@ pub async fn create_message(
         .fetch_one(pool)
         .await?;
     let group_id = string_at(&thread, "group_id");
-    let matrix_room_id = sqlx::query(
-        "SELECT matrix_room_id FROM matrix_room_links WHERE group_id = $1 AND is_primary LIMIT 1",
+    let primary_room = sqlx::query(
+        r#"
+        SELECT id, matrix_room_id
+        FROM matrix_room_links
+        WHERE group_id = $1 AND is_primary
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+        "#,
     )
     .bind(&group_id)
     .fetch_optional(pool)
-    .await?
-    .map(|row| string_at(&row, "matrix_room_id"));
+    .await?;
+    let matrix_room_link_id = primary_room.as_ref().map(|row| string_at(row, "id"));
+    let matrix_room_id = primary_room
+        .as_ref()
+        .map(|row| string_at(row, "matrix_room_id"));
     let id = new_id("msg");
-    let event_id = new_id("event");
+    let event_id = matrix_room_link_id.as_ref().map(|_| new_id("event"));
+    let event_link_id = matrix_room_link_id.as_ref().map(|_| new_id("mel"));
     let row = sqlx::query(
         r#"
-        INSERT INTO messages_cache
-            (id, thread_id, matrix_room_id, matrix_event_id, author_user_id, body)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id, thread_id, matrix_room_id, matrix_event_id, author_user_id, body,
-                  priority_label, priority_score, created_at::text AS created_at
+        WITH new_message AS (
+            INSERT INTO messages_cache
+                (id, thread_id, matrix_room_id, matrix_event_id, author_user_id, body)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id, thread_id, matrix_room_id, matrix_event_id, author_user_id, body,
+                      priority_label, priority_score, created_at::text AS created_at
+        ),
+        event_link AS (
+            INSERT INTO matrix_event_links
+                (id, matrix_room_link_id, matrix_event_id, source_type, source_id)
+            SELECT $7::text, $8::text, matrix_event_id, 'message_cache', id
+            FROM new_message
+            WHERE $8::text IS NOT NULL AND matrix_event_id IS NOT NULL
+            ON CONFLICT (matrix_room_link_id, matrix_event_id) DO NOTHING
+            RETURNING id
+        )
+        SELECT id, thread_id, matrix_room_id, matrix_event_id, author_user_id, body,
+               priority_label, priority_score, created_at
+        FROM new_message
         "#,
     )
     .bind(&id)
@@ -439,6 +575,8 @@ pub async fn create_message(
     .bind(&event_id)
     .bind(&request.author_id)
     .bind(&request.body)
+    .bind(&event_link_id)
+    .bind(&matrix_room_link_id)
     .fetch_one(pool)
     .await?;
     Ok(message_from_row(row))
@@ -472,10 +610,11 @@ pub async fn create_wiki_article(
     request: CreateWikiArticleRequest,
 ) -> Result<WikiArticle, sqlx::Error> {
     let id = new_id("wiki");
+    let status = request.status.unwrap_or_else(|| "published".to_string());
     let row = sqlx::query(
         r#"
-        INSERT INTO wiki_articles (id, group_id, title, body, tags, author_user_id)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO wiki_articles (id, group_id, title, body, tags, author_user_id, status)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING id, group_id, title, body, tags, author_user_id, status,
                   created_at::text AS created_at, updated_at::text AS updated_at
         "#,
@@ -486,6 +625,7 @@ pub async fn create_wiki_article(
     .bind(&request.body)
     .bind(&request.tags)
     .bind(&request.author_id)
+    .bind(&status)
     .fetch_one(pool)
     .await?;
     Ok(wiki_from_row(row))
@@ -514,21 +654,23 @@ pub async fn update_wiki_article(
     let row = sqlx::query(
         r#"
         UPDATE wiki_articles
-        SET title = $2, body = $3, tags = $4, updated_at = now()
+        SET title = $2, body = $3, tags = $4, status = COALESCE($5, status), updated_at = now()
         WHERE id = $1
-        RETURNING id, title, tags, updated_at::text AS updated_at
+        RETURNING id, title, tags, status, updated_at::text AS updated_at
         "#,
     )
     .bind(id)
     .bind(&request.title)
     .bind(&request.body)
     .bind(&request.tags)
+    .bind(&request.status)
     .fetch_one(pool)
     .await?;
     Ok(UpdateWikiArticleResponse {
         id: string_at(&row, "id"),
         title: string_at(&row, "title"),
         tags: row.get::<Vec<String>, _>("tags"),
+        status: string_at(&row, "status"),
         updated_at: string_at(&row, "updated_at"),
     })
 }
@@ -553,11 +695,17 @@ pub async fn list_feed(
 }
 
 pub async fn group_exists(pool: &PgPool, group_id: &str) -> Result<(), sqlx::Error> {
-    sqlx::query("SELECT id FROM groups WHERE id = $1")
-        .bind(group_id)
+    if group_exists_bool(pool, group_id).await? {
+        Ok(())
+    } else {
+        Err(sqlx::Error::RowNotFound)
+    }
+}
+
+pub async fn matrix_room_links_configured(pool: &PgPool) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM matrix_room_links)")
         .fetch_one(pool)
         .await
-        .map(|_| ())
 }
 
 pub async fn list_knowledge_nodes(pool: &PgPool) -> Result<Vec<KnowledgeNode>, sqlx::Error> {

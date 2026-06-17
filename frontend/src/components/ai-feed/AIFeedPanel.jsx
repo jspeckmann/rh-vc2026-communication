@@ -125,8 +125,8 @@ export default function AIFeedPanel({
     >
       <div className="flex items-center justify-between border-b border-[var(--color-gray)]/15 px-4 py-3">
         <div>
-          <h3 className="text-sm font-semibold">AI Feed</h3>
-          <p className="text-xs text-[var(--color-gray)]">LLM-Agent / Mock-Fallback aktiv</p>
+          <h3 className="text-sm font-semibold">Assistenz-Feed</h3>
+          <p className="text-xs text-[var(--color-gray)]">Aufgaben, Prioritäten und Hinweise</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -141,7 +141,7 @@ export default function AIFeedPanel({
           <button
             type="button"
             onClick={onClose}
-            aria-label="AI Feed schliessen"
+            aria-label="Assistenz-Feed schließen"
             className="cursor-pointer border-none bg-transparent text-lg leading-none text-[var(--color-gray)] hover:text-[var(--color-fg)]"
           >
             &times;
@@ -156,7 +156,7 @@ export default function AIFeedPanel({
           ) : error ? (
             <p className="text-sm text-[var(--color-error)]">Backend nicht erreichbar.</p>
           ) : items.length === 0 ? (
-            <p className="text-sm text-[var(--color-gray)]">Keine Feed-Eintraege.</p>
+            <p className="text-sm text-[var(--color-gray)]">Keine Feed-Einträge.</p>
           ) : (
             <div className="space-y-2">
               {items.map((item) => (
@@ -212,7 +212,7 @@ export default function AIFeedPanel({
               </div>
             </div>
           ) : (
-            <p className="text-sm text-[var(--color-gray)]">Kein Agent-Item gewaehlt.</p>
+            <p className="text-sm text-[var(--color-gray)]">Kein Agent-Item gewählt.</p>
           )}
         </section>
       </div>

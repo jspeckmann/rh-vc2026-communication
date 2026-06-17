@@ -3,7 +3,7 @@ use serde_json::json;
 use crate::{
     models::{
         AgentFeedItem, AgentFeedback, FeedItem, Group, GroupMember, KnowledgeEdge, KnowledgeNode,
-        MatrixRoomLink, MatrixUserLink, Message, ThreadItem, UserRef, WikiArticle,
+        MatrixEventLink, MatrixRoomLink, MatrixUserLink, Message, ThreadItem, UserRef, WikiArticle,
     },
     state::MockStore,
 };
@@ -29,7 +29,7 @@ pub fn mock_store() -> MockStore {
         Group {
             id: "group-demo-support".to_string(),
             name: "Demo Support".to_string(),
-            description: "Abstimmung fuer Demo, Readback und offene Gates".to_string(),
+            description: "Abstimmung für Demo, Readback und offene Gates".to_string(),
             member_ids: vec!["user-david".to_string(), "user-leyla".to_string()],
             matrix_room_id: Some("!demo-support:matrix.local".to_string()),
             created_at: "2026-06-17T09:05:00Z".to_string(),
@@ -93,7 +93,7 @@ pub fn mock_store() -> MockStore {
         thread(
             "thread-matrix-link",
             "group-team-1",
-            "Matrix-Verknuepfung klaeren",
+            "Chat-Verknüpfung klären",
             "question",
             "user-samira",
             "2026-06-17T09:30:00Z",
@@ -115,7 +115,8 @@ pub fn mock_store() -> MockStore {
             matrix_room_id: Some("!team1:matrix.local".to_string()),
             matrix_event_id: Some("$event1".to_string()),
             author_id: "user-david".to_string(),
-            body: "PostgreSQL bleibt Modul-Wahrheit, Matrix bleibt Chat-Layer.".to_string(),
+            body: "PostgreSQL bleibt Modul-Wahrheit, der Chat bleibt der Austausch-Layer."
+                .to_string(),
             priority_label: "high".to_string(),
             priority_score: 0.91,
             created_at: "2026-06-17T09:25:00Z".to_string(),
@@ -126,9 +127,28 @@ pub fn mock_store() -> MockStore {
             matrix_room_id: Some("!team1:matrix.local".to_string()),
             matrix_event_id: Some("$event2".to_string()),
             author_id: "user-samira".to_string(),
-            body: "Fuer Submit zuerst vorhandene oder Dummy-Raeume verlinken.".to_string(),
+            body: "Für Submit zuerst vorhandene oder Demo-Räume verlinken.".to_string(),
             priority_label: "normal".to_string(),
             priority_score: 0.66,
+            created_at: "2026-06-17T09:36:00Z".to_string(),
+        },
+    ];
+
+    let matrix_event_links = vec![
+        MatrixEventLink {
+            id: "mel-1".to_string(),
+            matrix_room_link_id: "mrl-1".to_string(),
+            matrix_event_id: "$event1".to_string(),
+            source_type: "message_cache".to_string(),
+            source_id: "msg-1".to_string(),
+            created_at: "2026-06-17T09:25:00Z".to_string(),
+        },
+        MatrixEventLink {
+            id: "mel-2".to_string(),
+            matrix_room_link_id: "mrl-1".to_string(),
+            matrix_event_id: "$event2".to_string(),
+            source_type: "message_cache".to_string(),
+            source_id: "msg-2".to_string(),
             created_at: "2026-06-17T09:36:00Z".to_string(),
         },
     ];
@@ -139,7 +159,7 @@ pub fn mock_store() -> MockStore {
             group_id: "group-team-1".to_string(),
             title: "DB-Plan Kommunikation".to_string(),
             body: "PostgreSQL speichert Gruppen, Wiki, Feed, Graph und Agent-Feedback.".to_string(),
-            tags: vec!["db".to_string(), "matrix".to_string(), "agent".to_string()],
+            tags: vec!["db".to_string(), "chat".to_string(), "agent".to_string()],
             author_id: "user-david".to_string(),
             status: "published".to_string(),
             created_at: "2026-06-17T10:00:00Z".to_string(),
@@ -148,9 +168,9 @@ pub fn mock_store() -> MockStore {
         WikiArticle {
             id: "wiki-matrix-postgres".to_string(),
             group_id: "group-team-1".to_string(),
-            title: "Matrix und PostgreSQL".to_string(),
-            body: "Matrix ist Chat-Layer. PostgreSQL bleibt Modul-Wahrheit.".to_string(),
-            tags: vec!["matrix".to_string(), "postgresql".to_string()],
+            title: "Chat und PostgreSQL".to_string(),
+            body: "Der Chat ist Austausch-Layer. PostgreSQL bleibt Modul-Wahrheit.".to_string(),
+            tags: vec!["chat".to_string(), "postgresql".to_string()],
             author_id: "user-samira".to_string(),
             status: "published".to_string(),
             created_at: "2026-06-17T10:05:00Z".to_string(),
@@ -165,17 +185,19 @@ pub fn mock_store() -> MockStore {
             "agent_feed_item",
             "agent-1",
             "Wichtige DB-Entscheidung",
-            "PostgreSQL ist Modul-Wahrheit, Matrix bleibt Chat-Layer.",
+            "PostgreSQL ist Modul-Wahrheit, der Chat bleibt der Austausch-Layer.",
             "high",
+            "2026-06-17T10:12:00Z",
         ),
         feed(
             "feed-2",
             "group-team-1",
             "wiki_article",
             "wiki-matrix-postgres",
-            "Matrix-Linking dokumentiert",
+            "Chat-Linking dokumentiert",
             "User- und Raum-Links bleiben getrennt vom Profil.",
             "normal",
+            "2026-06-17T10:13:00Z",
         ),
         feed(
             "feed-3",
@@ -185,6 +207,7 @@ pub fn mock_store() -> MockStore {
             "Demo-Readback offen",
             "Lokale Checks sind Pflicht, Docker bleibt partial ohne Runtime.",
             "normal",
+            "2026-06-17T10:14:00Z",
         ),
     ];
 
@@ -209,7 +232,7 @@ pub fn mock_store() -> MockStore {
             "node-group-team-1",
             "group",
             "Team 1 Kommunikation",
-            "Gruppe fuer Kommunikation und Wissen",
+            "Gruppe für Kommunikation und Wissen",
             "group",
             "group-team-1",
         ),
@@ -224,7 +247,7 @@ pub fn mock_store() -> MockStore {
         node(
             "node-wiki-matrix-postgres",
             "wiki_article",
-            "Matrix und PostgreSQL",
+            "Chat und PostgreSQL",
             "Trennung Chat-Layer und Modul-Wahrheit",
             "wiki_article",
             "wiki-matrix-postgres",
@@ -232,8 +255,8 @@ pub fn mock_store() -> MockStore {
         node(
             "node-agent-1",
             "agent_item",
-            "Naechste Schritte DB-Integration",
-            "Mock-Agent erzeugt Taskliste",
+            "Nächste Schritte DB-Integration",
+            "Assistenz erzeugt Taskliste",
             "agent_feed_item",
             "agent-1",
         ),
@@ -287,12 +310,12 @@ pub fn mock_store() -> MockStore {
             id: "agent-1".to_string(),
             group_id: "group-team-1".to_string(),
             item_type: "task_list".to_string(),
-            title: "Naechste Schritte DB-Integration".to_string(),
+            title: "Nächste Schritte DB-Integration".to_string(),
             content: json!({
                 "tasks": [
                     "PostgreSQL-Service vorbereiten",
                     "Schema initialisieren",
-                    "Matrix-Room-Link testen"
+                    "Chat-Raum-Link testen"
                 ]
             }),
             source_type: "thread".to_string(),
@@ -306,7 +329,7 @@ pub fn mock_store() -> MockStore {
             id: "agent-2".to_string(),
             group_id: "group-team-1".to_string(),
             item_type: "message_priority".to_string(),
-            title: "Prioritaet: Matrix-Event-Links".to_string(),
+            title: "Priorität: Chat-Event-Links".to_string(),
             content: json!({"priority": "high", "reason": "Feed, Graph und Agent brauchen stabile Event-Referenzen."}),
             source_type: "message_cache".to_string(),
             source_id: "msg-1".to_string(),
@@ -320,7 +343,7 @@ pub fn mock_store() -> MockStore {
             group_id: "group-demo-support".to_string(),
             item_type: "summary".to_string(),
             title: "Readback-Zusammenfassung".to_string(),
-            content: json!({"summary": "Health, Useradapter, OpenAPI und Demo-Daten lokal pruefen; Docker/Synapse bleiben externe Gates."}),
+            content: json!({"summary": "Health, Useradapter, OpenAPI und Demo-Daten lokal prüfen; Docker/Synapse bleiben externe Gates."}),
             source_type: "thread".to_string(),
             source_id: "thread-demo-flow".to_string(),
             priority: "normal".to_string(),
@@ -336,7 +359,7 @@ pub fn mock_store() -> MockStore {
             agent_feed_item_id: "agent-1".to_string(),
             user_id: "user-david".to_string(),
             value: 1,
-            reason: Some("Hilft fuer die naechste Umsetzung.".to_string()),
+            reason: Some("Hilft für die nächste Umsetzung.".to_string()),
             created_at: "2026-06-17T10:25:00Z".to_string(),
         },
         AgentFeedback {
@@ -363,6 +386,7 @@ pub fn mock_store() -> MockStore {
         agent_feedback,
         matrix_user_links,
         matrix_room_links,
+        matrix_event_links,
     )
 }
 
@@ -402,6 +426,7 @@ fn feed(
     title: &str,
     summary: &str,
     priority: &str,
+    created_at: &str,
 ) -> FeedItem {
     FeedItem {
         id: id.to_string(),
@@ -411,7 +436,7 @@ fn feed(
         title: title.to_string(),
         summary: summary.to_string(),
         priority: priority.to_string(),
-        created_at: "2026-06-17T10:12:00Z".to_string(),
+        created_at: created_at.to_string(),
     }
 }
 

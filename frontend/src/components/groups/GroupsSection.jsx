@@ -3,18 +3,25 @@ import {
   addGroupMember,
   fetchGroupDetails,
   fetchGroups,
+  fetchMatrixUser,
   fetchMatrixRooms,
   formatTime,
+  linkMatrixUser,
   linkMatrixRoom,
 } from '../../services/api.js';
 
-const ROLE_OPTIONS = ['member', 'owner', 'observer'];
+const ROLE_OPTIONS = ['member', 'owner'];
 
 function mergeCollapsedGroups(currentGroups, nextGroups) {
   return nextGroups.map((group) => ({
     ...group,
     collapsed: currentGroups.find((item) => item.id === group.id)?.collapsed ?? false,
   }));
+}
+
+function formatChatHandle(value) {
+  if (!value) return '';
+  return value.replace(/^[@#!]/, '').split(':')[0] || value;
 }
 
 export default function GroupsSection({
@@ -32,12 +39,16 @@ export default function GroupsSection({
   const [groupDetails, setGroupDetails] = useState(null);
   const [memberUserId, setMemberUserId] = useState('');
   const [memberRole, setMemberRole] = useState('member');
+  const [matrixUserUserId, setMatrixUserUserId] = useState('');
+  const [matrixUserId, setMatrixUserId] = useState('');
+  const [matrixUserLink, setMatrixUserLink] = useState(null);
   const [roomId, setRoomId] = useState('');
   const [roomAlias, setRoomAlias] = useState('');
   const [roomPrimary, setRoomPrimary] = useState(true);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [savingMember, setSavingMember] = useState(false);
+  const [savingMatrixUser, setSavingMatrixUser] = useState(false);
   const [savingRoom, setSavingRoom] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -58,11 +69,44 @@ export default function GroupsSection({
         if (selectedUserKnown) return selectedUserId;
         return users[0]?.id ?? '';
       });
+      setMatrixUserUserId((current) => {
+        if (users.some((user) => user.id === current)) return current;
+        if (selectedUserKnown) return selectedUserId;
+        return users[0]?.id ?? '';
+      });
     });
     return () => {
       cancelled = true;
     };
   }, [selectedUserId, selectedUserKnown, users]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!matrixUserUserId) {
+      queueMicrotask(() => {
+        if (!cancelled) setMatrixUserLink(null);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    fetchMatrixUser(matrixUserUserId)
+      .then((link) => {
+        if (cancelled) return;
+        setMatrixUserLink(link);
+        setMatrixUserId('');
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setMatrixUserLink(null);
+        setMatrixUserId('');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [matrixUserUserId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -127,10 +171,30 @@ export default function GroupsSection({
         memberRole: memberRole || 'member',
       });
       await refreshSelectedGroup();
-    } catch {
-      setFormError('Mitglied konnte nicht gespeichert werden.');
+    } catch (error) {
+      setFormError(error.message || 'Mitglied konnte nicht gespeichert werden.');
     } finally {
       setSavingMember(false);
+    }
+  };
+
+  const handleLinkMatrixUser = async (event) => {
+    event.preventDefault();
+    const nextMatrixUserId = matrixUserId.trim();
+    if (!matrixUserUserId || !nextMatrixUserId) return;
+    setSavingMatrixUser(true);
+    setFormError('');
+    try {
+      const link = await linkMatrixUser({
+        userId: matrixUserUserId,
+        matrixUserId: nextMatrixUserId,
+      });
+      setMatrixUserLink(link);
+      setMatrixUserId('');
+    } catch (error) {
+      setFormError(error.message || 'Chat-User konnte nicht verlinkt werden.');
+    } finally {
+      setSavingMatrixUser(false);
     }
   };
 
@@ -151,8 +215,8 @@ export default function GroupsSection({
       setRoomId('');
       setRoomAlias('');
       setRoomPrimary(true);
-    } catch {
-      setFormError('Matrix-Raum konnte nicht verlinkt werden.');
+    } catch (error) {
+      setFormError(error.message || 'Chat-Raum konnte nicht verlinkt werden.');
     } finally {
       setSavingRoom(false);
     }
@@ -164,7 +228,7 @@ export default function GroupsSection({
         <div className="mb-3 flex items-center justify-between">
           <div>
             <h2 className="text-sm font-semibold">Gruppen</h2>
-            <p className="mt-1 text-xs text-[var(--color-gray)]">Personen, Rollen und Matrix-Raeume</p>
+            <p className="mt-1 text-xs text-[var(--color-gray)]">Personen, Rollen und Chat-Räume</p>
           </div>
           <span className="ui-chip">{groups.length}</span>
         </div>
@@ -241,7 +305,7 @@ export default function GroupsSection({
 
                 <form className="mt-4 space-y-2 border-t border-[var(--color-gray)]/15 pt-3" onSubmit={handleAddMember}>
                   <select
-                    aria-label="Mitglied auswaehlen"
+                    aria-label="Mitglied auswählen"
                     value={memberUserId}
                     onChange={(event) => setMemberUserId(event.target.value)}
                     disabled={users.length === 0 || usersLoadError}
@@ -270,18 +334,62 @@ export default function GroupsSection({
                       disabled={!selectedGroupKnown || !memberUserId || savingMember}
                       className="ui-button ui-button-primary px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      Hinzufuegen
+                      Hinzufügen
                     </button>
                   </div>
                 </form>
               </DetailBlock>
 
-              <DetailBlock title="Matrix-Raeume">
+              <DetailBlock title="Chat-User">
+                {matrixUserLink ? (
+                  <article className="ui-card-row mb-3 px-3 py-2">
+                    <strong className="block text-sm">{formatChatHandle(matrixUserLink.matrixUserId)}</strong>
+                    <span className="text-xs text-[var(--color-gray)]">
+                      {matrixUserLink.linkStatus} / {formatTime(matrixUserLink.linkedAt)}
+                    </span>
+                  </article>
+                ) : (
+                  <p className="mb-3 text-sm text-[var(--color-gray)]">Kein Chat-User-Link für die Auswahl.</p>
+                )}
+
+                <form className="space-y-2 border-t border-[var(--color-gray)]/15 pt-3" onSubmit={handleLinkMatrixUser}>
+                  <select
+                    aria-label="User für Chat-Link auswählen"
+                    value={matrixUserUserId}
+                    onChange={(event) => setMatrixUserUserId(event.target.value)}
+                    disabled={users.length === 0 || usersLoadError}
+                    className="ui-input w-full px-3 py-2 text-sm disabled:opacity-60"
+                  >
+                    {users.length === 0 ? <option value="">Keine User</option> : null}
+                    {users.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.displayName}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    aria-label="Chat-User-ID"
+                    value={matrixUserId}
+                    onChange={(event) => setMatrixUserId(event.target.value)}
+                    placeholder="@user:server.local"
+                    className="ui-input w-full px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!matrixUserUserId || !matrixUserId.trim() || savingMatrixUser}
+                    className="ui-button ui-button-primary px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    User verlinken
+                  </button>
+                </form>
+              </DetailBlock>
+
+              <DetailBlock title="Chat-Räume">
                 {rooms.length ? (
                   <div className="space-y-2">
                     {rooms.map((room) => (
                       <article key={room.id} className="ui-card-row px-3 py-2">
-                        <strong className="block text-sm">{room.roomAlias ?? room.matrixRoomId}</strong>
+                        <strong className="block text-sm">{formatChatHandle(room.roomAlias ?? room.matrixRoomId)}</strong>
                         <span className="text-xs text-[var(--color-gray)]">
                           {room.linkStatus}{room.isPrimary ? ' / primary' : ''}
                         </span>
@@ -289,22 +397,22 @@ export default function GroupsSection({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-[var(--color-gray)]">Kein Matrix-Raum.</p>
+                  <p className="text-sm text-[var(--color-gray)]">Kein Chat-Raum.</p>
                 )}
 
                 <form className="mt-4 space-y-2 border-t border-[var(--color-gray)]/15 pt-3" onSubmit={handleLinkRoom}>
                   <input
-                    aria-label="Matrix-Room-ID"
+                    aria-label="Chat-Raum-ID"
                     value={roomId}
                     onChange={(event) => setRoomId(event.target.value)}
-                    placeholder="!room:matrix.local"
+                    placeholder="!raum:server.local"
                     className="ui-input w-full px-3 py-2 text-sm"
                   />
                   <input
-                    aria-label="Matrix-Room-Alias"
+                    aria-label="Chat-Raum-Alias"
                     value={roomAlias}
                     onChange={(event) => setRoomAlias(event.target.value)}
-                    placeholder="#team:matrix.local"
+                    placeholder="#team:server.local"
                     className="ui-input w-full px-3 py-2 text-sm"
                   />
                   <label className="flex items-center gap-2 text-xs text-[var(--color-gray)]">
@@ -313,7 +421,7 @@ export default function GroupsSection({
                       checked={roomPrimary}
                       onChange={(event) => setRoomPrimary(event.target.checked)}
                     />
-                    Primaerer Raum
+                    Primärer Raum
                   </label>
                   <button
                     type="submit"

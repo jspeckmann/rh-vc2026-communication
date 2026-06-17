@@ -3,6 +3,7 @@ FROM rust:1.95-slim AS build
 WORKDIR /app
 
 COPY Cargo.toml Cargo.lock ./
+COPY migrations ./migrations
 COPY src ./src
 
 RUN cargo build --release --locked

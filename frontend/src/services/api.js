@@ -53,7 +53,24 @@ export async function fetchWithAuth(endpoint, options = {}) {
     throw new Error('Received HTML response - backend not available');
   }
   if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    let message = `HTTP error! status: ${response.status}`;
+    let code = '';
+    let field = '';
+    if (contentType.includes('application/json')) {
+      try {
+        const body = await response.json();
+        message = body?.error?.message || message;
+        code = body?.error?.code || '';
+        field = body?.error?.field || '';
+      } catch {
+        // Keep the HTTP fallback when the backend response is not valid JSON.
+      }
+    }
+    const error = new Error(message);
+    error.status = response.status;
+    error.code = code;
+    error.field = field;
+    throw error;
   }
   if (response.status === 204) return null;
   if (contentType.includes('application/json')) {

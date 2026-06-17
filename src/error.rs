@@ -33,6 +33,13 @@ impl AppError {
         }
     }
 
+    pub fn bad_request_field(message: impl Into<String>, field: impl Into<String>) -> Self {
+        Self::BadRequest {
+            message: message.into(),
+            field: Some(field.into()),
+        }
+    }
+
     pub fn not_found(message: impl Into<String>) -> Self {
         Self::NotFound {
             message: message.into(),
